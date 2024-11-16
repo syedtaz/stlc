@@ -1,0 +1,21 @@
+(lang dune 3.6)
+
+(name stlc)
+
+(generate_opam_files false)
+
+(source
+ (github username/reponame))
+
+(authors "Tazmilur Saad")
+
+(maintainers "Maintainer Name")
+
+(license LICENSE)
+(package
+ (name stlc)
+ (synopsis "Implementation of the simply typed lambda calculus.")
+ (description "Implementation of the simply typed lambda calculus.")
+ (depends ocaml dune)
+ (tags
+  ("stlc")))

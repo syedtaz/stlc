@@ -2,6 +2,8 @@
 \usepackage{amsmath, amssymb}
 \usepackage{dsfont}
 \usepackage{trfrac}
+\usepackage[backend=biber,datamodel=acmdatamodel,style=acmnumeric]{biblatex}
+\addbibresource{bib.bib}
 
 % Helper commands
 \newcommand{\nat}{\texttt{Nat}}
@@ -31,10 +33,17 @@
   \setcopyright{rightsretained}
   \makeatletter\@printpermissionfalse\makeatother
   \makeatletter\@printcopyrightfalse\makeatother
+  \makeatletter\@ACM@nonacmtrue\makeatother
 
   \settopmatter{printacmref=false, printccs=true, printfolios=true}
 
   \maketitle
+
+  \section{Introduction}
+
+  This work documents an autodidactic implementation of an interpreter for
+  a simply typed lambda calculus extended unit, sums and product types. The
+  interpreter is based on the SECD machine.
 
   \section{Calculus}
 
@@ -63,9 +72,11 @@
                 \text{ if } e_1 \text{ then } e_2 \text{ else } e_3 \mid \mathds{N} \mid \mathds{B}
   \end{align*}
 
-  The typing judgements are as follows.
+  The typing judgements and the operational semantics are shown in Figure \ref{fig:stlc}
+  and \ref{fig:ops} respectively.
 
-  \begin{center}
+  \begin{figure}
+    \centering
     $
     \trfrac[~\textsc{Unit}]{}{\Gamma \vdash () : \mathds{1}}
       \qquad
@@ -76,40 +87,70 @@
     \vspace*{1em}
 
     $\trfrac[~\textsc{Var}]{x : \tau \in \Gamma}{\Gamma \vdash x : \tau}
-      \qquad
-    \trfrac[~\textsc{Lam}]{\Gamma, x : \tau_1 \vdash e : \tau_2}{\Gamma \vdash \lambda x : \tau_1 . e_{1} \tau_{1} \rightarrow \tau_2}
-      \qquad
-    \trfrac[~\textsc{App}]{\Gamma \vdash e_1 : \tau_1 \rightarrow \tau_2 \qquad \Gamma \vdash e_{2} : \tau_1}{\Gamma \vdash e_{1} e_{2} : \tau_2}$ \\
-    \vspace*{1em}
+    \qquad
+  \trfrac[~\textsc{Lam}]{\Gamma, x : \tau_1 \vdash e : \tau_2}{\Gamma \vdash \lambda x : \tau_1 . e_{1} \tau_{1} \rightarrow \tau_2}
+    \qquad
+  \trfrac[~\textsc{App}]{\Gamma \vdash e_1 : \tau_1 \rightarrow \tau_2 \qquad \Gamma \vdash e_{2} : \tau_1}{\Gamma \vdash e_{1} e_{2} : \tau_2}$ \\
+  \vspace*{1em}
 
-    $\trfrac[~\textsc{Let}]{\Gamma \vdash e_1 : \tau_1 \qquad \Gamma, x : \tau_1 \vdash e_2 : \tau_2}{\Gamma \vdash \text{ let } x = e_1 \text{ in } e_2 : \tau_2}
-      \qquad
-    \trfrac[~\textsc{Cond}]{\Gamma \vdash e_1 : \bool \qquad \Gamma \vdash e_2 : \tau \qquad \Gamma \vdash e_3 : \tau}{\Gamma \vdash \text{ if } e_1 \text{ then } e_2 \text{ else } e_3 : \tau}$ \\
-    \vspace*{1em}
+  $\trfrac[~\textsc{Let}]{\Gamma \vdash e_1 : \tau_1 \qquad \Gamma, x : \tau_1 \vdash e_2 : \tau_2}{\Gamma \vdash \text{ let } x = e_1 \text{ in } e_2 : \tau_2}
+  \qquad
+\trfrac[~\textsc{Cond}]{\Gamma \vdash e_1 : \bool \qquad \Gamma \vdash e_2 : \tau \qquad \Gamma \vdash e_3 : \tau}{\Gamma \vdash \text{ if } e_1 \text{ then } e_2 \text{ else } e_3 : \tau}$ \\
+\vspace*{1em}
 
-    $
-    \trfrac[~\textsc{Inl}]{\Gamma \vdash e : \tau_1}{\Gamma \vdash \text{ inl } e : \tau_1 + \tau_2}
-      \qquad
-    \trfrac[~\textsc{Inr}]{\Gamam \vdash e : \tau_2}{\Gamma \vdash \text{ inr } e : \tau_1 + \tau_2}
-    $\\
-    \vspace*{1em}
+$
+\trfrac[~\textsc{Inl}]{\Gamma \vdash e : \tau_1}{\Gamma \vdash \text{ inl } e : \tau_1 + \tau_2}
+  \qquad
+\trfrac[~\textsc{Inr}]{\Gamam \vdash e : \tau_2}{\Gamma \vdash \text{ inr } e : \tau_1 + \tau_2}
+$\\
+\vspace*{1em}
 
-    $\trfrac[~\textsc{Pair}]{\Gamma \vdash e_1 : \tau_1 \qquad \Gamma \vdash e_2 : \tau_2}{\Gamma \vdash (e_1, e_2) : \tau_1 \times \tau_2}
-      \qquad
-    \trfrac[~\textsc{Split}]{\Gamma \vdash e_1 : \tau_1 \times \tau_2 \qquad \Gamma, x : \tau_1, y : \tau_2 \vdash e_2 : \tau_3}{\Gamma \vdash \text{ let } (x, y) = e_1 \text{ in } e_2 : \tau_3}$
-  \end{center}
+$\trfrac[~\textsc{Pair}]{\Gamma \vdash e_1 : \tau_1 \qquad \Gamma \vdash e_2 : \tau_2}{\Gamma \vdash (e_1, e_2) : \tau_1 \times \tau_2}
+  \qquad
+\trfrac[~\textsc{Split}]{\Gamma \vdash e_1 : \tau_1 \times \tau_2 \qquad \Gamma, x : \tau_1, y : \tau_2 \vdash e_2 : \tau_3}{\Gamma \vdash \text{ let } (x, y) = e_1 \text{ in } e_2 : \tau_3}$
 
-  % The base types in the system inclues the natural numbers and booleans.
+    \caption{Simply typed lambda calculus}
+    \label{fig:stlc}
+  \end{figure}
 
-  % \vspace*{-2em}
-  % \begin{align*}
-  %     \mathcal{B}    &\coloneq \nat \mid \bool \\
-  %     \nat  &\coloneq \mathbf{Z} \mid \mathbf{S}~ \nat \\
-  %     \bool &\coloneq \texttt{true} \mid \texttt{false}
-  % \end{align*}
+  \begin{figure}
+    \centering
+    \caption{Operational Semantics}
+    \label{fig:ops}
+  \end{figure}
+
+
+  \section{Soundness}
+
+  \begin{theorem}[Progress]
+    If $\cdot \vdash x : \tau$ is a well typed term then $x$ is a value or there
+    exists some $y$ such that $x \mapsto y$.
+  \end{theorem}
+
+  \begin{proof}
+    Admitted.
+  \end{proof}
+
+  \begin{theorem}[Preservation]
+    If $\cdot \vdash x : \tau$ and $x \mapsto y$, then $\cdot \vdash y : \tau$.
+  \end{theorem}
+
+  \begin{proof}
+    Admitted.
+  \end{proof}
 
   \section{Implementation}
 
   Typing contexts are implemented using a locally nameless representation.
+
+  \section{Conclusion}
+
+  We have implemented an interpreter for the simply typed lambda calculus.
+
+  \section{Acknowledgements}
+
+  Thanks to Anton Lorenzen for his guidance on the project.
+
+  \printbibliography
 
 \end{document}

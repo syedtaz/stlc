@@ -1,11 +1,8 @@
+(** Basic implemention of the SECD machine. Assoc lists are used for the
+    environment. *)
+
 open Types
-
-type stack = value list
-type env = (string * value) list
-type ctl = control list
-type dump = (stack * env * ctl) list
-
-
+include Machine_intf
 
 type t =
   { stack : value list
@@ -14,7 +11,7 @@ type t =
   ; dump : (value list * (string * value) list * control list) list
   }
 
-let empty ctl = { stack = []; env = []; control = ctl; dump = [] }
+let init s e c d = { stack = s; env = e; control = c; dump = d }
 
 let rec run (m : t) =
   match m with

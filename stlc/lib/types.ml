@@ -63,3 +63,23 @@ let rec typeof ctx t =
      | TyArr (tyT1, tyT2) -> if tyT1 = tyt2 then Some tyT2 else None
      | _ -> None)
 ;;
+
+type control =
+  | Apply
+  | Term of term
+
+type value =
+  | Int of int
+  | Bool of bool
+  | Unit
+  | Binop of (int -> int -> int) (* GADT? *)
+  | Closure of (string * value) list * string * term
+
+let show_value v =
+  match v with
+  | Int i -> Format.sprintf "%d : Int" i
+  | Bool b -> Format.sprintf "%b : Bool" b
+  | Binop _ -> "f : int -> int -> int" (* TODO! *)
+  | Unit -> "() : Unit"
+  | Closure _ -> "Closure" (* Unimplemented *)
+;;

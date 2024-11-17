@@ -19,7 +19,7 @@ type term =
   | TmUnit
   | TmInt of int
   | TmBool of bool
-  | TmOp of (int -> int -> int)
+  | TmOp of (int -> int)
   | TmVar of int
   | TmAbs of string * ty * term
   | TmApp of term * term
@@ -29,10 +29,10 @@ let rec show_term t =
   | TmUnit -> "λ.()"
   | TmInt x -> Format.sprintf "λ.%d" x
   | TmBool b -> Format.sprintf "λ.%b" b
-  | TmOp _ -> "λx.(λy.(f x y))"
-  | TmVar i -> Format.sprintf "[%d/x]" i
+  | TmOp _ -> "λx.(f x)"
+  | TmVar i -> Format.sprintf "[%d/]" i
   | TmApp (a, b) -> Format.sprintf "(%s)(%s)" (show_term a) (show_term b)
-  | TmAbs (id, ty, t) -> Format.sprintf "λ%s : %s. %s" id (show_ty ty) (show_term t)
+  | TmAbs (id, _, t) -> Format.sprintf "λ%s. %s" id (show_term t)
 ;;
 
 type tycontext = (string * binding) list
@@ -75,11 +75,15 @@ type control =
   | Apply
   | Term of term
 
+let show_control c = match c with
+  | Apply -> "apply"
+  | Term x -> show_term x
+
 type value =
   | Int of int
   | Bool of bool
   | Unit
-  | Binop of (int -> int -> int)
+  | Primitive of (int -> int)
   | Closure of (string * value) list * string * term
 
 let rec show_value v =
@@ -87,10 +91,10 @@ let rec show_value v =
   | Int i -> Format.sprintf "%d : Int" i
   | Bool b -> Format.sprintf "%b : Bool" b
   | Unit -> "() : Unit"
-  | Binop _ -> "f : int -> int -> int"
+  | Primitive _ -> "int -> int"
   | Closure (bv, id, e) ->
     Format.sprintf
-      "{env: %s, id: %s, e: %s} : Closure "
+      "{env: %s, id: %s, e: %s}"
       ("["
        ^ List.fold_left
            (fun acc (id, v) -> acc ^ Format.sprintf "(%s = %s)" id (show_value v))

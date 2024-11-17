@@ -1,11 +1,13 @@
-type 'a stack = Types.value list
-type 'a env = (string * Types.value) list
+type stack = Types.value list
+type env = (string * Types.value) list
 type ctl = Types.control list
-type 'a dump = ('a stack * 'a env * ctl) list
+type dump = (stack * env * ctl) list
 
 module type Intf = sig
   type t
 
-  val init : 'a stack -> 'a env -> ctl -> 'a dump -> t
-  val run : t -> Types.value
+  val init : stack -> env -> ctl -> dump -> t
+  val run : ?debug:(bool) -> t -> Types.value
+
+  val show : t -> string
 end

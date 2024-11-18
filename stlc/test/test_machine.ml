@@ -172,7 +172,7 @@ module CheckMachine (M : Stlc.Machine_intf.Intf) = struct
                 [ [], [], [ Term (TmOp decr); Apply ] ]))
   ;;
 
-  (* Given that quickchest generates an integer x, evaluate λf.(f x)(decr). This
+  (* Given that quickcheck generates an integer x, evaluate λf.(f x)(decr). This
      is to test that the machine can read from the environment in the closure
      and return. *)
   let%test_unit "abstract and apply" =
@@ -193,17 +193,29 @@ module CheckMachine (M : Stlc.Machine_intf.Intf) = struct
                 []))
   ;;
 
-  let%expect_test "unit literal" =
-    M.init [] [] [ Term TmUnit ] [] |> M.run |> show_value |> print_endline;
-    [%expect {| () : Unit |}]
-  ;;
-
-  let%expect_test "abstraction" =
-    M.init [] [ "a", Int 0; "b", Int 2 ] [ Term (TmAbs ("a", TyInt, TmVar 0)) ] []
-    |> M.run ~debug:false
-    |> show_value
-    |> print_endline;
-    [%expect {| {env: [(a = 0 : Int)(b = 2 : Int)], id: a, e: [0/]} |}]
+  (* Given that quickcheck generates an integer x, evaluate λf.(λx.(f x))(x)(decr) *)
+  let%test_unit "abstract, abstract and apply" =
+    Quickcheck.test
+      (Int.gen_incl (Int.min_value + 1) Int.max_value)
+      ~f:(fun x ->
+        [%test_eq: Int.t Option.t]
+          (Some (x - 1))
+          (extract_int
+           @@ M.run
+           @@ M.init
+                []
+                []
+                [ Term (TmInt x)
+                ; Term (TmOp decr)
+                ; Term
+                    (TmAbs
+                       ( "f"
+                       , TyArr (TyInt, TyInt)
+                       , TmAbs ("x", TyInt, TmApp (TmVar 1, TmVar 0)) ))
+                ; Apply
+                ; Apply
+                ]
+                []))
   ;;
 end
 

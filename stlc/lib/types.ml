@@ -92,15 +92,14 @@ let rec show_value v =
   | Bool b -> Format.sprintf "%b : Bool" b
   | Unit -> "() : Unit"
   | Primitive _ -> "int -> int"
-  | Closure (bv, id, e) ->
+  | Closure (bv, _, e) ->
     Format.sprintf
-      "{env: %s, id: %s, e: %s}"
+      "{env: %s, e: %s}"
       ("["
        ^ List.fold_left
            (fun acc (id, v) -> acc ^ Format.sprintf "(%s = %s)" id (show_value v))
            ""
            bv
        ^ "]")
-      id
       (show_term e)
 ;;

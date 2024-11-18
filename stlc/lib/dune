@@ -1,2 +1,3 @@
 (library
- (name stlc))
+ (name stlc)
+ (public_name stlc))

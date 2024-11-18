@@ -12,10 +12,12 @@ let extract_bool v =
   | _ -> None
 ;;
 
-let must_be_error v =
+let must_be_error (v : ('a, err) result) =
   match v with
   | Error `TypeError -> Some "typerror"
+  | Error (`OperationalError s) -> Some s
   | _ -> None
+;;
 
 module CheckMachine (M : Stlc.Machine_intf.Intf) = struct
   open Core
@@ -240,6 +242,53 @@ module CheckMachine (M : Stlc.Machine_intf.Intf) = struct
                 ; Apply
                 ]
                 []))
+  ;;
+
+  (* Given that quickcheck generates an integer x, evaluate {x, x}.1. This is to
+  test that the machine can project the first element of a pair. *)
+  let%test_unit "project 1" =
+    Quickcheck.test
+      (Int.gen_incl Int.min_value (Int.max_value - 1))
+      ~f:(fun x ->
+        [%test_eq: Int.t Option.t]
+          (Some (x + 1))
+          (extract_int
+           @@ M.run
+           @@ M.init
+                [ Pair (Int (x + 1), Int x), TyPair (TyInt, TyInt) ]
+                []
+                [ Term TmFst ]
+                []))
+  ;;
+
+  (* Given that quickcheck generates an integer x, evaluate {x, x}.2 This is to
+  test that the machine can project the second element of a pair. *)
+  let%test_unit "project 2" =
+    Quickcheck.test
+      (Int.gen_incl Int.min_value (Int.max_value - 1))
+      ~f:(fun x ->
+        [%test_eq: Int.t Option.t]
+          (Some (x + 1))
+          (extract_int
+           @@ M.run
+           @@ M.init
+                [ Pair (Int x, Int (x + 1)), TyPair (TyInt, TyInt) ]
+                []
+                [ Term TmSnd ]
+                []))
+  ;;
+
+  (* Given that quickcheck generates an integer x, test that the machine can construct a pair.*)
+  let%test_unit "construct pair" =
+    Quickcheck.test
+      (Int.gen_incl Int.min_value (Int.max_value - 1))
+      ~f:(fun x ->
+        [%test_eq: Int.t Option.t]
+          (Some x)
+          (extract_int
+           @@ M.run
+           @@ M.init [] [] [ Term (TmInt x); Term (TmInt x); Term TmPair; Term TmFst ] []
+          ))
   ;;
 end
 

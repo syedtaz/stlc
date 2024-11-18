@@ -2,6 +2,7 @@ type ty =
   | TyUnit
   | TyInt
   | TyBool
+  | TyPair of ty * ty
   | TyArr of ty * ty
 
 let rec show_ty x =
@@ -9,6 +10,10 @@ let rec show_ty x =
   | TyUnit -> "()"
   | TyInt -> "int"
   | TyBool -> "bool"
+  | TyPair (t1, t2) ->
+    let st1 = show_ty t1 in
+    let st2 = show_ty t2 in
+    Format.sprintf "(%s, %s)" st1 st2
   | TyArr (t1, t2) ->
     let st1 = show_ty t1 in
     let st2 = show_ty t2 in
@@ -20,6 +25,9 @@ type term =
   | TmInt of int
   | TmBool of bool
   | TmOp of (int -> int)
+  | TmPair
+  | TmFst
+  | TmSnd
   | TmVar of int
   | TmAbs of string * ty * term
   | TmApp of term * term
@@ -30,17 +38,24 @@ let rec show_term t =
   | TmInt x -> Format.sprintf "λ.%d" x
   | TmBool b -> Format.sprintf "λ.%b" b
   | TmOp _ -> "λx.(f x)"
+  | TmPair -> "{v1, v2}"
+  | TmFst -> "λ.{0}"
+  | TmSnd -> "λ.{1}"
   | TmVar i -> Format.sprintf "[%d/]" i
   | TmApp (a, b) -> Format.sprintf "(%s)(%s)" (show_term a) (show_term b)
   | TmAbs (id, _, t) -> Format.sprintf "λ%s. %s" id (show_term t)
 ;;
 
-type error = [ `TypeError ]
+type err =
+  [ `TypeError
+  | `OperationalError of string
+  ]
 
 type value =
   | Int of int
   | Bool of bool
   | Unit
+  | Pair of value * value
   | Primitive of (int -> int)
   | Closure of (string * value * ty) list * string * term
 
@@ -61,6 +76,8 @@ let rec typecheck ctx t =
   | TmBool _ -> Ok TyBool
   | TmOp _ -> Ok (TyArr (TyInt, TyInt))
   | TmVar i -> Ok (get_type ctx i)
+  | TmFst | TmSnd | TmPair ->
+    Ok TyUnit (* projections are syntactic forms. they have no type? *)
   | TmAbs (id, tyt1, t2) ->
     let ctx' = (id, tyt1) :: ctx in
     typecheck ctx' t2 >>= fun tyt2 -> Ok (TyArr (tyt1, tyt2))
@@ -90,6 +107,7 @@ let rec show_value v =
   | Bool b -> Format.sprintf "%b : Bool" b
   | Unit -> "() : Unit"
   | Primitive _ -> "int -> int"
+  | Pair (a, b) -> Format.sprintf "(%s, %s)" (show_value a) (show_value b)
   | Closure (bv, _, e) ->
     Format.sprintf
       "{env: %s, e: %s}"

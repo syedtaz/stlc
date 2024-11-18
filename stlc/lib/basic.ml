@@ -45,7 +45,8 @@ let rec run ?(debug = false) (m : t) =
   | { stack = s; env = e; control = ctl_hd :: ctl_tl; dump = d } ->
     (match ctl_hd with
      | Term t ->
-       typecheck (context_of_env e) t >>= fun typ ->
+       typecheck (context_of_env e) t
+       >>= fun typ ->
        (match t with
         (* If the control contains a literal term, convert it into a value and
            push it onto the stack. *)
@@ -59,6 +60,31 @@ let rec run ?(debug = false) (m : t) =
         | TmVar i ->
           let _, vl, ty = List.nth e i in
           run ~debug { stack = (vl, ty) :: s; env = e; control = ctl_tl; dump = d }
+        (* If the control contains a projection, look into the stack; extract
+           the value of the pair if it exists and push it back. *)
+        | TmFst ->
+          (match s with
+           | (Pair (v1, _), TyPair (ty1, _)) :: tl ->
+             run ~debug { stack = (v1, ty1) :: tl; env = e; control = ctl_tl; dump = d }
+           | _ -> Error (`OperationalError "cannot project without a pair"))
+        | TmSnd ->
+          (match s with
+           | (Pair (_, v2), TyPair (_, ty2)) :: tl ->
+             run ~debug { stack = (v2, ty2) :: tl; env = e; control = ctl_tl; dump = d }
+           | _ -> Error (`OperationalError "cannot project without a pair"))
+        (* If the control contains a pairing, extract the top two values on the stack
+           and construct a pair value. *)
+        | TmPair ->
+          (match s with
+           | (v1, ty1) :: (v2, ty2) :: tl ->
+             run
+               ~debug
+               { stack = (Pair (v1, v2), TyPair (ty1, ty2)) :: tl
+               ; env = e
+               ; control = ctl_tl
+               ; dump = d
+               }
+           | _ -> Error (`OperationalError "need two values on the stack to form a pair"))
         (* If the control contains an application term, add each individual term
            followed by an apply tag onto the control. *)
         | TmApp (t1, t2) ->
@@ -87,11 +113,12 @@ let rec run ?(debug = false) (m : t) =
             { stack = (Primitive f, typ) :: s; env = e; control = ctl_tl; dump = d })
      | Apply ->
        (match s with
-        | [] -> failwith "can't apply when stack is empty"
+        | [] -> Error (`OperationalError "can't apply when stack is empty")
         | (op, ty) :: s' ->
           (match op with
            (* We cannot apply an a value literal. *)
-           | Int _ | Unit | Bool _ -> failwith "invalid operator"
+           | Int _ | Unit | Bool _ | Pair _ ->
+             Error (`OperationalError "invalid operator")
            (* If the stack contains a builtin operator, then pop two further
               values from the stack; apply the operator and push the result back
               onto the stack. *)
@@ -107,8 +134,8 @@ let rec run ?(debug = false) (m : t) =
                      ; control = ctl_tl
                      ; dump = d
                      }
-                 | _ -> failwith "invalid operands")
-              | _ -> failwith "invalid operands")
+                 | _ -> Error (`OperationalError "invalid operands"))
+              | _ -> Error (`OperationalError "invalid operands"))
            (* If the stack contains a closure followed by a value, then pop the
               stack twice. Take a copy of the stack, environment and control and
               save into into the dump. Then allocate a fresh empty stack, extend
@@ -125,5 +152,5 @@ let rec run ?(debug = false) (m : t) =
                   ; control = [ Term t ]
                   ; dump = (tl, e, ctl_tl) :: d
                   }
-              | _ -> failwith "invalid closure"))))
+              | _ -> Error (`OperationalError "invalid closure")))))
 ;;

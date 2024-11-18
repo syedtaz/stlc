@@ -35,19 +35,20 @@ let rec show_term t =
   | TmAbs (id, _, t) -> Format.sprintf "λ%s. %s" id (show_term t)
 ;;
 
-type tycontext = (string * binding) list
+type value =
+  | Int of int
+  | Bool of bool
+  | Unit
+  | Primitive of (int -> int)
+  | Closure of (string * value * ty) list * string * term
 
-and binding =
-  | NameBind
-  | VarBind of ty
+type context = (string * ty) list
 
-let add_binding (ctx : tycontext) (n : string) (ty : binding) = (n, ty) :: ctx
+let context_of_env lst = List.map (fun (id, _, ty) -> (id, ty)) lst
 
-let get_type (ctx : tycontext) (i : int) =
-  let _, res = List.nth ctx i in
-  match res with
-  | VarBind ty -> ty
-  | _ -> raise (Invalid_argument "Bad context")
+let get_type (ctx : context) (i : int) =
+  let _, ty = List.nth ctx i in
+  ty
 ;;
 
 let rec typeof ctx t =
@@ -56,10 +57,10 @@ let rec typeof ctx t =
   | TmUnit -> Some TyUnit
   | TmInt _ -> Some TyInt
   | TmBool _ -> Some TyBool
-  | TmOp _ -> Some (TyArr (TyArr (TyInt, TyInt), TyInt))
+  | TmOp _ -> Some (TyArr (TyInt, TyInt))
   | TmVar i -> Some (get_type ctx i)
   | TmAbs (id, tyt1, t2) ->
-    let ctx' = add_binding ctx id (VarBind tyt1) in
+    let ctx' = (id, tyt1) :: ctx in
     typeof ctx' t2 >>= fun tyt2 -> Some (TyArr (tyt1, tyt2))
   | TmApp (t1, t2) ->
     typeof ctx t1
@@ -71,20 +72,17 @@ let rec typeof ctx t =
      | _ -> None)
 ;;
 
+let typecheck_exn ctx t = typeof ctx t |> Option.get
+
 type control =
   | Apply
   | Term of term
 
-let show_control c = match c with
+let show_control c =
+  match c with
   | Apply -> "apply"
   | Term x -> show_term x
-
-type value =
-  | Int of int
-  | Bool of bool
-  | Unit
-  | Primitive of (int -> int)
-  | Closure of (string * value) list * string * term
+;;
 
 let rec show_value v =
   match v with
@@ -97,7 +95,7 @@ let rec show_value v =
       "{env: %s, e: %s}"
       ("["
        ^ List.fold_left
-           (fun acc (id, v) -> acc ^ Format.sprintf "(%s = %s)" id (show_value v))
+           (fun acc (id, v, _) -> acc ^ Format.sprintf "(%s = %s)" id (show_value v))
            ""
            bv
        ^ "]")

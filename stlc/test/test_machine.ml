@@ -1,12 +1,12 @@
 open Stlc.Types
 
-let extract_int v =
+let extract_int (v, _) =
   match v with
   | Int x -> Some x
   | _ -> None
 ;;
 
-let extract_bool v =
+let extract_bool (v, _) =
   match v with
   | Bool x -> Some x
   | _ -> None
@@ -48,7 +48,7 @@ module CheckMachine (M : Stlc.Machine_intf.Intf) = struct
         (Some x)
         (extract_bool
          @@ M.run ~debug:false
-         @@ M.init [] [ "a", Bool x ] [ Term (TmVar 0) ] []))
+         @@ M.init [] [ ("a", Bool x, TyBool) ] [ Term (TmVar 0) ] []))
   ;;
 
   (* Given that quickcheck generates an integer x, a machine with a single
@@ -61,7 +61,7 @@ module CheckMachine (M : Stlc.Machine_intf.Intf) = struct
         (Some x)
         (extract_int
          @@ M.run ~debug:false
-         @@ M.init [] [ "a", Int x ] [ Term (TmVar 0) ] []))
+         @@ M.init [] [ ("a", Int x, TyInt) ] [ Term (TmVar 0) ] []))
   ;;
 
   (* Given that quickcheck generates an integer x, a machine with x on the stack
@@ -74,7 +74,7 @@ module CheckMachine (M : Stlc.Machine_intf.Intf) = struct
           (Some (x + 1))
           (extract_int
            @@ M.run ~debug:false
-           @@ M.init [ Int x ] [] [ Term (TmOp incr); Apply ] []))
+           @@ M.init [ (Int x, TyInt) ] [] [ Term (TmOp incr); Apply ] []))
   ;;
 
   (* Given that quickcheck generates an integer x, a machine with x on the stack
@@ -87,7 +87,7 @@ module CheckMachine (M : Stlc.Machine_intf.Intf) = struct
           (Some (x - 1))
           (extract_int
            @@ M.run ~debug:false
-           @@ M.init [ Int x ] [] [ Term (TmOp decr); Apply ] []))
+           @@ M.init [ (Int x, TyInt) ] [] [ Term (TmOp decr); Apply ] []))
   ;;
 
   (* Given that quickcheck generates an integer x, a machine with instructions
@@ -150,7 +150,7 @@ module CheckMachine (M : Stlc.Machine_intf.Intf) = struct
           (Some (x - 1))
           (extract_int
            @@ M.run
-           @@ M.init [ Int x ] [] [] [ [], [], [ Term (TmOp decr); Apply ] ]))
+           @@ M.init [ (Int x, TyInt) ] [] [] [ [], [], [ Term (TmOp decr); Apply ] ]))
   ;;
 
   (* Given that quickcheck generates an integer x, and the dump contains
@@ -193,7 +193,8 @@ module CheckMachine (M : Stlc.Machine_intf.Intf) = struct
                 []))
   ;;
 
-  (* Given that quickcheck generates an integer x, evaluate λf.(λx.(f x))(x)(decr) *)
+  (* Given that quickcheck generates an integer x, evaluate λf.(λx.(f x))(x)(decr).
+     This is to test that the machine can evaluate multiple, nested abstractions. *)
   let%test_unit "abstract, abstract and apply" =
     Quickcheck.test
       (Int.gen_incl (Int.min_value + 1) Int.max_value)

@@ -102,20 +102,30 @@ $
 \trfrac[~\textsc{Inl}]{\Gamma \vdash e : \tau_1}{\Gamma \vdash \text{ inl } e : \tau_1 + \tau_2}
   \qquad
 \trfrac[~\textsc{Inr}]{\Gamam \vdash e : \tau_2}{\Gamma \vdash \text{ inr } e : \tau_1 + \tau_2}
+  \qquad
+\trfrac[~\textsc{Case}]{\Gamma \vdash e : \tau_1 + \tau_2 \quad \Gamma, x_1 : \tau_1 \vdash y_1 : \tau_3 \quad \Gamma, x_2 : \tau_2 \vdash y_2 : \tau_3}{\Gamma \vdash \text{ case } e \text{ of } \textsc{inl } x_1 \rightarrow y_1 \mid \textsc{ inr } x_2 \rightarrow y_2 : \tau_3}
 $\\
 \vspace*{1em}
 
 $\trfrac[~\textsc{Pair}]{\Gamma \vdash e_1 : \tau_1 \qquad \Gamma \vdash e_2 : \tau_2}{\Gamma \vdash (e_1, e_2) : \tau_1 \times \tau_2}
   \qquad
-\trfrac[~\textsc{Split}]{\Gamma \vdash e_1 : \tau_1 \times \tau_2 \qquad \Gamma, x : \tau_1, y : \tau_2 \vdash e_2 : \tau_3}{\Gamma \vdash \text{ let } (x, y) = e_1 \text{ in } e_2 : \tau_3}$
+\trfrac[~\textsc{Proj 1}]{\Gamma \vdash (e_{1}, e_{2}) : \tau_{1} \times \tau_{2}}{\Gamma \vdash e_1 : \tau_{1}}
+  \qquad
+\trfrac[~\textsc{Proj 2}]{\Gamma \vdash (e_{1}, e_{2}) : \tau_{1} \times \tau_{2}}{\Gamma \vdash e_2 : \tau_{2}}$
 
     \caption{Simply typed lambda calculus}
     \label{fig:stlc}
   \end{figure}
 
   \begin{figure}
-    \centering
-    \caption{Operational Semantics}
+
+    \begin{align*}
+      (v_1, v_2).1 \rightarrow v_1 && \textsc{PairBeta1} && (v_1, v_2).2 \rightarrow v_2 && \textsc{PairBeta2} \\
+      \trfrac[]{e \rightarrow {e'}}{e.1 \rightarrow {e'}.1} && \textsc{Proj 1} && \trfrac[]{e \rightarrow {e'}}{e.2 \rightarrow {e'}.2} && \textsc{Proj 2} \\
+      \trfrac[]{e_1 \rightarrow {e'}_{1}}{(e_1, e_2)\rightarrow ({e'}_{1}, e_2)} && \textsc{Pair 1} && \trfrac[]{e_2 \rightarrow {e'}_{2}}{(v_1, e_2) \rightarrow (v_1, {e'}_{2})} && \textsc{Pair 2}
+    \end{align*}
+
+    \caption{Small Step Operational Semantics}
     \label{fig:ops}
   \end{figure}
 
@@ -141,7 +151,7 @@ $\trfrac[~\textsc{Pair}]{\Gamma \vdash e_1 : \tau_1 \qquad \Gamma \vdash e_2 : \
 
   \section{Implementation}
 
-  Typing contexts are implemented using a locally nameless representation.
+
 
   \section{Conclusion}
 

@@ -306,4 +306,5 @@ TSWLatexianTemp*
 #*Notes.bib
 
 *.sty
-output/*
+*.DS_Store
+*.pdf

@@ -193,8 +193,36 @@ $\trfrac[~\textsc{Pair}]{\Gamma \vdash e_1 : \tau_1 \qquad \Gamma \vdash e_2 : \
     Therefore, $\Delta$ remains a permutation of $\Gamma$ and it contains the same
     exact elements. Since we satisfy the assumptions, we can apply the judgements
     to reach the same conclusions.
+  \end{proof}
 
+  \begin{lemma}[Weakening]
+    If $~\Gamma \vdash e : \tau_1$ and $x \notin dom(\Gamma)$, then $~\Gamma, x : \tau_2
+    \vdash e : \tau_1$. Moreover, the latter derivation has the same depth as
+    the former.
+  \end{lemma}
 
+  \begin{proof}
+    We assume that extension of a context does not result in naming conflicts.
+    We proceed by structural induction on the typing derivation.
+
+    [\textsc{Unit, Nat, Bool}]: These judgements do not assume anything about
+    the context. If we extend the context with a non-existing element, we can
+    reach the same conclusions. Moreover, there are no subterms so the derivation
+    tree's depth does not change.
+
+    [\textsc{Var}]: If we extend $\Gamma$ with a non-existing element, $x : \tau \in \Gamma$
+    still holds and we can apply the judgement.
+
+    [\textsc{Inl, Inr, Pair, Proj 1, Proj 2, App}]: We assume that the weakening
+    lemma holds for the antecedent These rules do not extend $\Gamma$, so addition of
+    another element allows us to reach the same conclusion.
+
+    [\textsc{Let, Case, Lam}]: We assume the weakening lemma holds for the
+    antecedent. Since these rules extend $\Gamma$, there are two cases. If we
+    extend $\Gamma$ with a variable that has the same type as the assumptions of
+    the judgement, then we get that inference for free. If we extend $\Gamma$ with
+    a different type, then the variables in the original assumption will still
+    exist modulo renaming and we can still apply the judgement.
   \end{proof}
 
   \begin{theorem}[Progress]

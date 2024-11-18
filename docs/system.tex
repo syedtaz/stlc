@@ -1,4 +1,4 @@
-\documentclass[]{acmart}
+\documentclass[nonacm]{acmart}
 \usepackage{amsmath, amssymb}
 \usepackage{dsfont}
 \usepackage{trfrac}
@@ -16,8 +16,9 @@
 % =================================
 
 \begin{abstract}
-  This paper presents an OCaml implementation of the simply typed lambda calculus
-  extended with units, sums and products using the SECD machine.
+  This work documents an autodidactic implementation of an interpreter for
+  a simply typed lambda calculus extended unit, sums and product types. The
+  interpreter is based on the SECD machine.
 \end{abstract}
 
 \begin{document}
@@ -37,17 +38,10 @@
   \setcopyright{rightsretained}
   \makeatletter\@printpermissionfalse\makeatother
   \makeatletter\@printcopyrightfalse\makeatother
-  \makeatletter\@ACM@nonacmtrue\makeatother
 
   \settopmatter{printacmref=false, printccs=true, printfolios=true}
 
   \maketitle
-
-  \section{Introduction}
-
-  This work documents an autodidactic implementation of an interpreter for
-  a simply typed lambda calculus extended unit, sums and product types. The
-  interpreter is based on the SECD machine.
 
   \section{Calculus}
 
@@ -101,7 +95,7 @@
 $
 \trfrac[~\textsc{Inl}]{\Gamma \vdash e : \tau_1}{\Gamma \vdash \text{ inl } e : \tau_1 + \tau_2}
   \qquad
-\trfrac[~\textsc{Inr}]{\Gamam \vdash e : \tau_2}{\Gamma \vdash \text{ inr } e : \tau_1 + \tau_2}
+\trfrac[~\textsc{Inr}]{\Gamma \vdash e : \tau_2}{\Gamma \vdash \text{ inr } e : \tau_1 + \tau_2}
 $\\ \vspace*{1em}
 
   $\trfrac[~\textsc{Let}]{\Gamma \vdash e_1 : \tau_1 \qquad \Gamma, x : \tau_1 \vdash e_2 : \tau_2}{\Gamma \vdash \text{ let } x = e_1 \text{ in } e_2 : \tau_2}
@@ -163,6 +157,46 @@ $\trfrac[~\textsc{Pair}]{\Gamma \vdash e_1 : \tau_1 \qquad \Gamma \vdash e_2 : \
 
   \section{Soundness}
 
+  \begin{lemma}[Permutation]
+    If $~\Gamma \vdash e : \tau$ and $~\Delta$ is a permutation of $~\Gamma$, then
+    $~\Delta \vdash e : \tau$. Moreover, the latter derivation has the same depth
+    as the former.
+  \end{lemma}
+
+  \begin{proof}
+    Note that a typing context $\Gamma = (e_n : \tau_n), (e_{n - 1} : \tau_{n - 1}), \dots,
+    (e_1 : \tau_1), (e_0 : \tau_0)$ is a sequence which assigns to each $e_i$ a type $\tau_i$.
+    A permutation is a bijection $\Delta : \Gamma \rightarrow \Gamma$. We will use
+    $\Delta$ as a bijection and $\Delta$ as a typing context interchangeably.
+
+    Assume $~\Gamma \vdash e : \tau$ and $~\Delta$ is a permutation of $~\Gamma$.
+    We proceed by structural induction on the typing derivations.
+
+    [\textsc{Unit, Nat, Bool}]: Let $n$ be the length of $\Gamma$. Since $\Delta$ is a bijection,
+    there exists some $j \leq n$ such that $\Delta(e_j : \tau_j) = e : \tau$.
+    Therefore, $\Delta \vdash e : \tau$ and the depth does not changes.
+
+    [\textsc{Var}]: If $e : \tau \in \Gamma$, then $e : \tau \in \Delta$ since
+    $\Delta$ contains the same elements as $\Gamma$. Therefore, we can apply the
+    judgement that $\Delta \vdash e : \tau$. Moreover, the depth does not change.
+
+    [\textsc{Inl, Inr, Pair, Proj 1, Proj 2, App}]: In each of these cases, we can
+    assume that the permutation property holds for the antecedent. Therefore,
+    we can substitute $\Gamma \vdash e_{i} : \tau_{i}$ for some arbitrary $i$ with
+    $\Delta \vdash e_{i} : \tau_{i}$ and straightforwardly apply the judgement
+    and notice that the depth does not change.
+
+    [\textsc{Let, Case, Lam}]: Each of these cases contain either $\Gamma$ or
+    $\Gamma \vdash e : \tau$ for which we can assume the permutation property.
+    All of them extend $\Gamma$ with some term $x_j : \tau_j$ but we can also
+    extend $\Delta$ with those terms by adding a mapping from that term to itself.
+    Therefore, $\Delta$ remains a permutation of $\Gamma$ and it contains the same
+    exact elements. Since we satisfy the assumptions, we can apply the judgements
+    to reach the same conclusions.
+
+
+  \end{proof}
+
   \begin{theorem}[Progress]
     If $\cdot \vdash x : \tau$ is a well typed term then $x$ is a value or there
     exists some $y$ such that $x \mapsto y$.
@@ -180,13 +214,6 @@ $\trfrac[~\textsc{Pair}]{\Gamma \vdash e_1 : \tau_1 \qquad \Gamma \vdash e_2 : \
     Admitted.
   \end{proof}
 
-  \section{Implementation}
-
-
-
-  \section{Conclusion}
-
-  We have implemented an interpreter for the simply typed lambda calculus.
 
   \section{Acknowledgements}
 

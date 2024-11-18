@@ -35,6 +35,8 @@ let rec show_term t =
   | TmAbs (id, _, t) -> Format.sprintf "λ%s. %s" id (show_term t)
 ;;
 
+type error = [ `TypeError ]
+
 type value =
   | Int of int
   | Bool of bool
@@ -44,35 +46,33 @@ type value =
 
 type context = (string * ty) list
 
-let context_of_env lst = List.map (fun (id, _, ty) -> (id, ty)) lst
+let context_of_env lst = List.map (fun (id, _, ty) -> id, ty) lst
 
 let get_type (ctx : context) (i : int) =
   let _, ty = List.nth ctx i in
   ty
 ;;
 
-let rec typeof ctx t =
-  let ( >>= ) = Option.bind in
+let rec typecheck ctx t =
+  let ( >>= ) = Result.bind in
   match t with
-  | TmUnit -> Some TyUnit
-  | TmInt _ -> Some TyInt
-  | TmBool _ -> Some TyBool
-  | TmOp _ -> Some (TyArr (TyInt, TyInt))
-  | TmVar i -> Some (get_type ctx i)
+  | TmUnit -> Ok TyUnit
+  | TmInt _ -> Ok TyInt
+  | TmBool _ -> Ok TyBool
+  | TmOp _ -> Ok (TyArr (TyInt, TyInt))
+  | TmVar i -> Ok (get_type ctx i)
   | TmAbs (id, tyt1, t2) ->
     let ctx' = (id, tyt1) :: ctx in
-    typeof ctx' t2 >>= fun tyt2 -> Some (TyArr (tyt1, tyt2))
+    typecheck ctx' t2 >>= fun tyt2 -> Ok (TyArr (tyt1, tyt2))
   | TmApp (t1, t2) ->
-    typeof ctx t1
+    typecheck ctx t1
     >>= fun tyt1 ->
-    typeof ctx t2
+    typecheck ctx t2
     >>= fun tyt2 ->
     (match tyt1 with
-     | TyArr (tyT1, tyT2) -> if tyT1 = tyt2 then Some tyT2 else None
-     | _ -> None)
+     | TyArr (tyT1, tyT2) -> if tyT1 = tyt2 then Ok tyT2 else Error `TypeError
+     | _ -> Error `TypeError)
 ;;
-
-let typecheck_exn ctx t = typeof ctx t |> Option.get
 
 type control =
   | Apply

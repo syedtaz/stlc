@@ -25,6 +25,8 @@ let show (m : t) =
   Format.sprintf "(Stack = %s, Env = %s, Control = %s)\n" stack env control
 ;;
 
+let ( >>= ) = Result.bind
+
 let rec run ?(debug = false) (m : t) =
   let () = if debug then Format.print_string (show m) else () in
   match m with
@@ -32,8 +34,8 @@ let rec run ?(debug = false) (m : t) =
      stack. *)
   | { stack = s; env = _; control = []; dump = [] } ->
     (match s with
-     | hd :: _ -> hd
-     | [] -> Unit, TyUnit)
+     | hd :: _ -> Ok hd
+     | [] -> Ok (Unit, TyUnit))
   (* If the control is empty but the dump is not empty, take the result of the
      evaluation from the current stack and restore the head of the dump.*)
   | { stack = s; env = _; control = []; dump = hd :: tl } ->
@@ -43,7 +45,7 @@ let rec run ?(debug = false) (m : t) =
   | { stack = s; env = e; control = ctl_hd :: ctl_tl; dump = d } ->
     (match ctl_hd with
      | Term t ->
-       let typ = typecheck_exn (context_of_env e) t in
+       typecheck (context_of_env e) t >>= fun typ ->
        (match t with
         (* If the control contains a literal term, convert it into a value and
            push it onto the stack. *)

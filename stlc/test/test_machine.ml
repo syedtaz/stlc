@@ -1,16 +1,21 @@
 open Stlc.Types
 
-let extract_int (v, _) =
+let extract_int v =
   match v with
-  | Int x -> Some x
+  | Ok (Int x, _) -> Some x
   | _ -> None
 ;;
 
-let extract_bool (v, _) =
+let extract_bool v =
   match v with
-  | Bool x -> Some x
+  | Ok (Bool x, _) -> Some x
   | _ -> None
 ;;
+
+let must_be_error v =
+  match v with
+  | Error `TypeError -> Some "typerror"
+  | _ -> None
 
 module CheckMachine (M : Stlc.Machine_intf.Intf) = struct
   open Core
@@ -48,7 +53,7 @@ module CheckMachine (M : Stlc.Machine_intf.Intf) = struct
         (Some x)
         (extract_bool
          @@ M.run ~debug:false
-         @@ M.init [] [ ("a", Bool x, TyBool) ] [ Term (TmVar 0) ] []))
+         @@ M.init [] [ "a", Bool x, TyBool ] [ Term (TmVar 0) ] []))
   ;;
 
   (* Given that quickcheck generates an integer x, a machine with a single
@@ -61,7 +66,7 @@ module CheckMachine (M : Stlc.Machine_intf.Intf) = struct
         (Some x)
         (extract_int
          @@ M.run ~debug:false
-         @@ M.init [] [ ("a", Int x, TyInt) ] [ Term (TmVar 0) ] []))
+         @@ M.init [] [ "a", Int x, TyInt ] [ Term (TmVar 0) ] []))
   ;;
 
   (* Given that quickcheck generates an integer x, a machine with x on the stack
@@ -74,7 +79,7 @@ module CheckMachine (M : Stlc.Machine_intf.Intf) = struct
           (Some (x + 1))
           (extract_int
            @@ M.run ~debug:false
-           @@ M.init [ (Int x, TyInt) ] [] [ Term (TmOp incr); Apply ] []))
+           @@ M.init [ Int x, TyInt ] [] [ Term (TmOp incr); Apply ] []))
   ;;
 
   (* Given that quickcheck generates an integer x, a machine with x on the stack
@@ -87,7 +92,7 @@ module CheckMachine (M : Stlc.Machine_intf.Intf) = struct
           (Some (x - 1))
           (extract_int
            @@ M.run ~debug:false
-           @@ M.init [ (Int x, TyInt) ] [] [ Term (TmOp decr); Apply ] []))
+           @@ M.init [ Int x, TyInt ] [] [ Term (TmOp decr); Apply ] []))
   ;;
 
   (* Given that quickcheck generates an integer x, a machine with instructions
@@ -150,7 +155,7 @@ module CheckMachine (M : Stlc.Machine_intf.Intf) = struct
           (Some (x - 1))
           (extract_int
            @@ M.run
-           @@ M.init [ (Int x, TyInt) ] [] [] [ [], [], [ Term (TmOp decr); Apply ] ]))
+           @@ M.init [ Int x, TyInt ] [] [] [ [], [], [ Term (TmOp decr); Apply ] ]))
   ;;
 
   (* Given that quickcheck generates an integer x, and the dump contains
@@ -191,6 +196,24 @@ module CheckMachine (M : Stlc.Machine_intf.Intf) = struct
                 ; Apply
                 ]
                 []))
+  ;;
+
+  (* Given that quickcheck generates an boolean x, try to evaluate λf.(f x)(decr).
+     This should not type check. *)
+  let%test_unit "abstract and apply" =
+    Quickcheck.test Bool.quickcheck_generator ~f:(fun x ->
+      [%test_eq: String.t Option.t]
+        (Some "typerror")
+        (must_be_error
+         @@ M.run
+         @@ M.init
+              []
+              []
+              [ Term (TmOp decr)
+              ; Term (TmAbs ("f", TyArr (TyInt, TyInt), TmApp (TmVar 0, TmBool x)))
+              ; Apply
+              ]
+              []))
   ;;
 
   (* Given that quickcheck generates an integer x, evaluate λf.(λx.(f x))(x)(decr).

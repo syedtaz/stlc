@@ -1,3 +1,4 @@
 (library
  (name stlc)
+ (libraries angstrom)
  (public_name stlc))

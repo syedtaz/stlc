@@ -18,3 +18,15 @@ let%expect_test "λx.decr x" =
   Format.print_string (pp res);
   [%expect {| Ok (TmPrim(decr)) |}]
 ;;
+
+let%expect_test "λx.()" =
+  let res = parse "λx.()" in
+  Format.print_string (pp res);
+  [%expect {| Ok (TmUnit) |}]
+;;
+
+(* let%expect_test "λx.(x)" =
+  let res = parse "λx.(x)" in
+  Format.print_string (pp res);
+  [%expect {| Ok (TmVar 0) |}]
+;; *)

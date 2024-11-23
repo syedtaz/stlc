@@ -150,7 +150,7 @@ let rec run ?(debug = false) (m : t) =
                   { stack = []
                   ; env = (id, v1, tyv1) :: e
                   ; control = [ Term t ]
-                  ; dump = (tl, e, ctl_tl) :: d
+                  ; dump = (tl, e, ctl_tl) :: d (* TODO! Are we saving the right environment? *)
                   }
               | _ -> Error (`OperationalError "invalid closure")))))
 ;;

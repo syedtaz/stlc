@@ -293,3 +293,4 @@ module CheckMachine (M : Stlc.Machine_intf.Intf) = struct
 end
 
 module Basic = CheckMachine (Stlc.Basic)
+module Disentangled = CheckMachine (Stlc.Disentangled)

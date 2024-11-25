@@ -1,6 +1,5 @@
 open Stlc.Types
 
-(* open Helpers *)
 open Test_base
 module M = Stlc.Dumpless
 

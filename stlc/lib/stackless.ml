@@ -8,6 +8,8 @@ type t =
   ; env : env
   }
 
+type cont = t -> (value * ty, err) Result.t
+
 type s =
   { a : value * ty
   ; b : value * ty
@@ -44,4 +46,10 @@ and apply (s : s) (e : env) =
       >>= fun { value = v', ty'; env = _ } -> Ok { value = v', ty'; env = e }
     else Error `TypeError
   | _ -> Error (`OperationalError "invalid operator")
+;;
+
+let run ?(cont : cont init = `Default) ?(env : env init = `Default) t =
+  let e = get_or env [] in
+  let c = get_or cont (fun { value = v; env = _ } -> Ok v) in
+  reset (fun () -> eval t e) >>= c
 ;;

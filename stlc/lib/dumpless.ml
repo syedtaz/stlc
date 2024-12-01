@@ -16,8 +16,6 @@ type t =
   ; control : ctl
   }
 
-let ( >>= ) = Result.bind
-
 let rec eval (t : term) ({ stack = s; env = e; control = c } : t) =
   typecheck (context_of_env e) t
   >>= fun typ ->
@@ -79,17 +77,6 @@ and apply ({ stack = s; env = e; control = c } : t) =
     else Error `TypeError
   | [] -> Error (`OperationalError "can't apply when stack is empty")
   | _ -> Error (`OperationalError "invalid operator")
-;;
-
-type 'a init =
-  [ `Default
-  | `Specific of 'a
-  ]
-
-let get_or (x : 'a init) y =
-  match x with
-  | `Specific f -> f
-  | `Default -> y
 ;;
 
 let run

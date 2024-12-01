@@ -11,7 +11,6 @@ type t =
 type final = (stack, err) Result.t
 
 let reset : (unit -> 'a) -> 'a = fun thunk -> thunk ()
-let ( >>= ) = Result.bind
 
 let rec eval (t : term) ({ stack = s; env = e } : t) =
   typecheck (context_of_env e) t
@@ -56,17 +55,6 @@ and apply { stack = s; env = e } =
     else Error `TypeError
   | [] -> Error (`OperationalError "can't apply when stack is empty")
   | _ -> Error (`OperationalError "invalid operator")
-;;
-
-type 'a init =
-  [ `Default
-  | `Specific of 'a
-  ]
-
-let get_or (x : 'a init) y =
-  match x with
-  | `Specific f -> f
-  | `Default -> y
 ;;
 
 let run ?(stack : stack init = `Default) ?(env : env init = `Default) t =

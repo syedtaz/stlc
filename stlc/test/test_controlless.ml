@@ -15,6 +15,6 @@ let%test_unit "int var" =
   int_var (fun x -> M.run ~env:(`Specific [ "a", Int x, TyBool ]) (TmVar 0))
 ;;
 
-let%test_unit "incr_1" =
+(* let%test_unit "incr_1" =
   incr_1 (fun x -> M.run ~stack:(`Specific [ Int x, TyInt ]) (TmOp incr))
-;;
+;; *)

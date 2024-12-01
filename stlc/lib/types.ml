@@ -1,3 +1,16 @@
+let ( >>= ) = Result.bind
+
+type 'a init =
+  [ `Default
+  | `Specific of 'a
+  ]
+
+let get_or (x : 'a init) y =
+  match x with
+  | `Specific f -> f
+  | `Default -> y
+;;
+
 type ty =
   | TyUnit
   | TyInt
@@ -77,7 +90,7 @@ let rec typecheck ctx t =
   | TmOp _ -> Ok (TyArr (TyInt, TyInt))
   | TmVar i -> Ok (get_type ctx i)
   | TmFst | TmSnd | TmPair ->
-    Ok TyUnit (* projections are syntactic forms. they have no type? *)
+    Ok TyUnit
   | TmAbs (id, tyt1, t2) ->
     let ctx' = (id, tyt1) :: ctx in
     typecheck ctx' t2 >>= fun tyt2 -> Ok (TyArr (tyt1, tyt2))

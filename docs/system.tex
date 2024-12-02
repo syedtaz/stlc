@@ -2,16 +2,18 @@
 \usepackage{amsmath, amssymb}
 \usepackage{dsfont}
 \usepackage{trfrac}
+\usepackage{mathtools}
 \usepackage[backend=biber,datamodel=acmdatamodel,style=acmnumeric]{biblatex}
 \addbibresource{bib.bib}
 
 % Helper commands
 \newcommand{\nat}{\texttt{Nat}}
 \newcommand{\bool}{\texttt{Bool}}
-\newcommand{\caseof}[3]{\text{case } #1 \text{ of } #2 ~$\mid$~ #3}
-\newcommand{\caseofnobar}[3]{\text{case } #1 \text{ of } #2 $,$~ #3}
-\newcommand{\inl}[1]{\textsc{inl } #1}
-\newcommand{\inr}[1]{\textsc{inr } #1}
+\newcommand{\caseof}[3]{\text{case } #1 \text{ of } #2~\(\mid \)~#3}
+\newcommand{\caseofnobar}[3]{\text{case } #1 \text{ of } \{#2,~#3\}}
+\newcommand{\inl}[1]{\text{inl } #1}
+\newcommand{\inr}[1]{\text{inr } #1}
+\newcommand{\jdg}[3]{\trfrac[~\textsc{#1}]{#2}{#3}}
 
 % =================================
 
@@ -22,231 +24,374 @@
 \end{abstract}
 
 \begin{document}
-  \title{SECD Machine Implementation of $\lambda_{\rightarrow}$}
+\title{SECD Machine Implementation of \(\lambda_{\rightarrow}\)}
 
-  % Author information
+% Author information
 
-  \author{Tazmilur Saad}
-  \affiliation{
-    \institution{Independent}
-    \city{Jersey City}
-    \state{NJ}
-    \country{USA}}
-  \email{ssaad@colgate.edu}
+\author{Tazmilur Saad}
+\affiliation{
+  \institution{Independent}
+  \city{Jersey City}
+  \state{NJ}
+  \country{USA}}
+\email{ssaad@colgate.edu}
 
-  % Remove Permission Block
-  \setcopyright{rightsretained}
-  \makeatletter\@printpermissionfalse\makeatother
-  \makeatletter\@printcopyrightfalse\makeatother
+% Remove Permission Block
+\setcopyright{rightsretained}
+\makeatletter\@printpermissionfalse\makeatother
+\makeatletter\@printcopyrightfalse\makeatother
 
-  \settopmatter{printacmref=false, printccs=true, printfolios=true}
+\settopmatter{printacmref=false, printccs=true, printfolios=true}
 
-  \maketitle
+\maketitle
 
-  \section{Calculus}
+\section{Calculus}
 
-  Contexts are an ordered list of variables equipped with a type.
+A typing context is a set of variables equipped with a type.
 
-  \vspace*{-2em}
-  \begin{align*}
-    \Gamma &\coloneq \varnothing \mid \Gamma, x : \tau
-  \end{align*}
+\vspace*{-2em}
+\begin{align*}
+  \Gamma & \Coloneqq \varnothing \mid \Gamma, x : \tau
+\end{align*}
 
-  The types in our system includes the unit type, sum types, product types, function types
-  and the base types.
+The types in our system includes the unit type, sum types, product types, function types
+and the base types.
 
-  \vspace*{-2em}
-  \begin{align*}
-    \tau &\coloneq \mathds{1} \mid \tau + \tau \mid \tau \times\tau \mid \tau \rightarrow \tau \mid \nat \mid \bool
-  \end{align*}
+\vspace*{-2em}
+\begin{align*}
+  \tau & \Coloneqq \mathds{1} \mid \tau + \tau \mid \tau \times\tau \mid \tau \rightarrow \tau \mid \nat \mid \bool
+\end{align*}
 
-  The syntax of the system includes variables, abstractions, applications,
-  let bindings, if-then-else and members of the base types of natural numbers and
-  booleans.
+The values in our language include lambda abstractions, unit, sums, products, natural numbers and booleans.
 
-  \vspace*{-2em}
-  \begin{align*}
-    e &\coloneq x \mid () \mid \inl{e} \mid \inr{e} \mid (e_1, e_2) \mid \lambda x : \tau . e \mid e_{1} e_{2} \mid \mathds{N} \mid \mathds{B} \\
-      &\mid \text{let } x = e_1 \text{ in } e_2 \mid
-              \caseofnobar{e}{\textsc{ inl } x \rightarrow e_2}{\textsc{ inr } y \rightarrow e_2}
-  \end{align*}
+\vspace*{-2em}
+\begin{align*}
+  v & \Coloneqq \lambda x : \tau . e \mid () \mid (v, v) \mid \inl{v} \mid \inr{v} \mid n \mid b \\
+  n & \Coloneqq 0 \mid 1 \mid 2 \mid \dots                                                       \\
+  b & \Coloneqq true \mid false
+\end{align*}
 
-  The typing judgements and the operational semantics are shown in Figure \ref{fig:stlc}
-  and \ref{fig:ops} respectively.
+Expressions includes variables, values, sums, products, applications, let bindings, cases and projections
 
-  \begin{figure}
-    \centering
-    $
-    \trfrac[~\textsc{Unit}]{}{\Gamma \vdash () : \mathds{1}}
-      \qquad
-    \trfrac[~\textsc{Nat}]{}{\Gamma \vdash \mathds{N} : \nat}
-      \qquad
-    \trfrac[~\textsc{Bool}]{}{\Gamma \vdash \mathds{B} : \bool}
-    $\\
-    \vspace*{1em}
+\vspace*{-2em}
+\begin{align*}
+  e & \Coloneqq x \mid v \mid \inl{e} \mid \inr{e} \mid (e, e) \mid (e, e).1 \mid (e, e).2 \mid e e           \\
+    & \mid \text{let } x = e \text{ in } e \mid \caseofnobar{e}{\inl{x} \rightarrow e}{\inr{x} \rightarrow e}
+\end{align*}
 
-    $\trfrac[~\textsc{Var}]{x : \tau \in \Gamma}{\Gamma \vdash x : \tau}
-    \qquad
-  \trfrac[~\textsc{Lam}]{\Gamma, x : \tau_1 \vdash e : \tau_2}{\Gamma \vdash \lambda x : \tau_1 . e_{1} \tau_{1} \rightarrow \tau_2}
-    \qquad
-  \trfrac[~\textsc{App}]{\Gamma \vdash e_1 : \tau_1 \rightarrow \tau_2 \qquad \Gamma \vdash e_{2} : \tau_1}{\Gamma \vdash e_{1} e_{2} : \tau_2}$ \\
+Expressions are evaluated using the following evaluation contexts.
+
+\vspace*{-2em}
+\begin{align*}
+  E & \Coloneqq [\cdot] \mid E e \mid v E \mid \inl{E} \mid \inr{E} \mid (E,e) \mid (v, E) \mid E.1 \mid E.2  \\
+    & \mid \caseofnobar{E}{\inl{x} \rightarrow e}{\inr{x} \rightarrow e} \mid \text{let } x = E \text{ in } e
+\end{align*}
+
+The typing judgements and the operational semantics are shown in Figure~\ref{fig:stlc}
+and~\ref{fig:ops} respectively.
+
+%% ============================================================================
+%% Typing Derivations START
+%% ============================================================================
+
+\begin{figure}
+  \centering
+  \(
+  \trfrac[~\textsc{Unit}]{}{\Gamma \vdash () : \mathds{1}}
+  \qquad
+  \trfrac[~\textsc{Nat}]{}{\Gamma \vdash n : \nat}
+  \qquad
+  \trfrac[~\textsc{Bool}]{}{\Gamma \vdash b : \bool}
+  \)
+  \\
   \vspace*{1em}
 
-$
-\trfrac[~\textsc{Inl}]{\Gamma \vdash e : \tau_1}{\Gamma \vdash \text{ inl } e : \tau_1 + \tau_2}
+  \(\trfrac[~\textsc{Var}]{x : \tau \in \Gamma}{\Gamma \vdash x : \tau}
   \qquad
-\trfrac[~\textsc{Inr}]{\Gamma \vdash e : \tau_2}{\Gamma \vdash \text{ inr } e : \tau_1 + \tau_2}
-$\\ \vspace*{1em}
-
-  $\trfrac[~\textsc{Let}]{\Gamma \vdash e_1 : \tau_1 \qquad \Gamma, x : \tau_1 \vdash e_2 : \tau_2}{\Gamma \vdash \text{ let } x = e_1 \text{ in } e_2 : \tau_2}
+  \trfrac[~\textsc{Lam}]{\Gamma, x : \tau_1 \vdash e : \tau_2}{\Gamma \vdash \lambda x : \tau_1 . e : \tau_{1} \rightarrow \tau_2}
   \qquad
-  \trfrac[~\textsc{Case}]{\Gamma \vdash e : \tau_1 + \tau_2 \quad \Gamma, x_1 : \tau_1 \vdash y_1 : \tau_3 \quad \Gamma, x_2 : \tau_2 \vdash y_2 : \tau_3}{\Gamma \vdash \text{ case } e \text{ of } \textsc{inl } x_1 \rightarrow y_1 \mid \textsc{ inr } x_2 \rightarrow y_2 : \tau_3}
-%   \qquad
-% \trfrac[~\textsc{Cond}]{\Gamma \vdash e_1 : \bool \qquad \Gamma \vdash e_2 : \tau \qquad \Gamma \vdash e_3 : \tau}{\Gamma \vdash \text{ if } e_1 \text{ then } e_2 \text{ else } e_3 : \tau}
-$ \\ \vspace*{1em}
+  \trfrac[~\textsc{App}]{\Gamma \vdash e_1 : \tau_1 \rightarrow \tau_2 \qquad \Gamma \vdash e_{2} : \tau_1}{\Gamma \vdash e_{1} e_{2} : \tau_2} \) \\
+  \vspace*{1em}
 
-$\trfrac[~\textsc{Pair}]{\Gamma \vdash e_1 : \tau_1 \qquad \Gamma \vdash e_2 : \tau_2}{\Gamma \vdash (e_1, e_2) : \tau_1 \times \tau_2}
+  \(
+  \trfrac[~\textsc{Inl}]{\Gamma \vdash e : \tau_1}{\Gamma \vdash \text{ inl } e : \tau_1 + \tau_2}
   \qquad
-\trfrac[~\textsc{Proj 1}]{\Gamma \vdash (e_{1}, e_{2}) : \tau_{1} \times \tau_{2}}{\Gamma \vdash e_1 : \tau_{1}}
+  \trfrac[~\textsc{Inr}]{\Gamma \vdash e : \tau_2}{\Gamma \vdash \text{ inr } e : \tau_1 + \tau_2}
+  \) \\ \vspace*{1em}
+
+  \(\trfrac[~\textsc{Let}]{\Gamma \vdash e_1 : \tau_1 \qquad \Gamma, x : \tau_1 \vdash e_2 : \tau_2}{\Gamma \vdash \text{ let } x = e_1 \text{ in } e_2 : \tau_2}
   \qquad
-\trfrac[~\textsc{Proj 2}]{\Gamma \vdash (e_{1}, e_{2}) : \tau_{1} \times \tau_{2}}{\Gamma \vdash e_2 : \tau_{2}}$
+  \trfrac[~\textsc{Case}]{\Gamma \vdash e : \tau_1 + \tau_2 \quad \Gamma, x_1 : \tau_1 \vdash e_1 : \tau \quad \Gamma, x_2 : \tau_2 \vdash e_2 : \tau}{\Gamma \vdash \caseofnobar{e}{\inl{x_1} \rightarrow e_1}{\inr{x_2} \rightarrow e_2} : \tau}
+  \) \\ \vspace*{1em}
 
-    \caption{Simply typed lambda calculus}
-    \label{fig:stlc}
-  \end{figure}
+  \(\trfrac[~\textsc{Pair}]{\Gamma \vdash e_1 : \tau_1 \qquad \Gamma \vdash e_2 : \tau_2}{\Gamma \vdash (e_1, e_2) : \tau_1 \times \tau_2}
+  \qquad
+  \trfrac[~\textsc{Proj 1}]{\Gamma \vdash (e_{1}, e_{2}) : \tau_{1} \times \tau_{2}}{\Gamma \vdash e_1 : \tau_{1}}
+  \qquad
+  \trfrac[~\textsc{Proj 2}]{\Gamma \vdash (e_{1}, e_{2}) : \tau_{1} \times \tau_{2}}{\Gamma \vdash e_2 : \tau_{2}} \)
 
-  \begin{figure}
+  \caption{Simply typed lambda calculus}\label{fig:stlc}
+\end{figure}
 
-    $
-    \trfrac[~\textsc{App 1}]{e_1 \rightarrow {e'}_1}{e_1 e_2 \rightarrow {e'}_1 e_2}
-      \qquad
-      \trfrac[~\textsc{App 2}]{e_2 \rightarrow {e'}_2}{v_1 e_2 \rightarrow v {e'}_2}
-      \qquad
-      \trfrac[~\textsc{Let}]{e \rightarrow {e'}}{\text{let } x = e \text{ in } e_2 \rightarrow \text{let } x = {e'} \text{ in } e_2}
-    $\\ \vspace*{1em}
+%% ============================================================================
+%% Typing Derivations END
+%% ============================================================================
 
-    $\trfrac[~\textsc{Proj 1}]{e \rightarrow {e'}}{e.1 \rightarrow {e'}.1}
-      \qquad
-      \trfrac[~\textsc{Proj 2}]{e \rightarrow {e'}}{e.2 \rightarrow {e'}.2}
-      \qquad
-      \trfrac[~\textsc{Pair 1}]{e_1 \rightarrow {e'}_{1}}{(e_1, e_2)\rightarrow ({e'}_{1}, e_2)}
-    $
-    \\ \vspace*{1em}
+%% ============================================================================
+%% Operational Semantics START
+%% ============================================================================
 
-    $\trfrac[~\textsc{Pair 2}]{e_2 \rightarrow {e'}_{2}}{(v_1, e_2) \rightarrow (v_1, {e'}_{2})}
-      \qquad
-    \trfrac[~\textsc{Inl}]{e \rightarrow {e'}}{\textsc{inl } e \rightarrow \textsc{ inl } {e'}}
-      \qquad
-    \trfrac[~\textsc{Inr}]{e \rightarrow {e'}}{\textsc{inr } e \rightarrow \textsc{ inr } {e'}}
-    $
+\begin{figure}
 
-    \begin{align*}
-      (\lambda x : \tau . e) v \rightarrow [x \mapsto v] e && \textsc{AppAbs} \\
-      (v_1, v_2).1 \rightarrow v_1 && \textsc{PairBeta1} \\
-      (v_1, v_2).2 \rightarrow v_2 && \textsc{PairBeta2} \\
-      \caseof{(\textsc{ inl } v~)}{\textsc{inl } x_1 \Rightarrow e_1}{\textsc{inr } x_2 \Rightarrow t_2} \rightarrow [x_1 \mapsto v]e_1
-      && \textsc{CaseInl} \\
-      \caseof{(\textsc{ inr } v~)}{\textsc{inl } x_1 \Rightarrow e_1}{\textsc{inr } x_2 \Rightarrow t_2} \rightarrow [x_2 \mapsto v]e_1
-      && \textsc{CaseInr}
-    \end{align*}
+  \(
+  \jdg{context}{e \rightarrow e'}{E[e] \rightarrow E[e']}
+  \) \\ \vspace*{1em}
 
-    \caption{Small Step Operational Semantics}
-    \label{fig:ops}
-  \end{figure}
+  \begin{align*}
+    (\lambda x : \tau . e)v \rightarrow e[v/x]         &  & \beta\textsc{-reduction} \\
+    \text{let } x = v \text{ in } e \rightarrow e[v/x] &  & \textsc{Let}             \\
+    (v_1, v_2).1 \rightarrow v_1                       &  & \textsc{Proj 1}          \\
+    (v_1, v_2).2 \rightarrow v_2                       &  & \textsc{Proj 2}          \\
+    \caseofnobar{\inl{v}}{e_1}{e_2} \rightarrow e_1    &  & \textsc{Inl}             \\
+    \caseofnobar{\inr{v}}{e_1}{e_2} \rightarrow e_2    &  & \textsc{Inr}
+  \end{align*}
 
+  \caption{Operational Semantics}\label{fig:ops}
+\end{figure}
 
-  \section{Soundness}
+%% ============================================================================
+%% Operational Semantics END
+%% ============================================================================
 
-  \begin{lemma}[Permutation]
-    If $~\Gamma \vdash e : \tau$ and $~\Delta$ is a permutation of $~\Gamma$, then
-    $~\Delta \vdash e : \tau$. Moreover, the latter derivation has the same depth
-    as the former.
-  \end{lemma}
+%% ============================================================================
+%% Substitution START
+%% ============================================================================
 
-  \begin{proof}
-    Note that a typing context $\Gamma = (e_n : \tau_n), (e_{n - 1} : \tau_{n - 1}), \dots,
-    (e_1 : \tau_1), (e_0 : \tau_0)$ is a sequence which assigns to each $e_i$ a type $\tau_i$.
-    A permutation is a bijection $\Delta : \Gamma \rightarrow \Gamma$. We will use
-    $\Delta$ as a bijection and $\Delta$ as a typing context interchangeably.
+\begin{figure}
+  \centering
+  \(
+    b[v/x] = b \qquad
+    n[v/x] = n \qquad
+    ()[v/x] = () \qquad
+    (e e)[v/x] = e[v/x] e[v/x]
+  \) \\ \vspace*{1em}
 
-    Assume $~\Gamma \vdash e : \tau$ and $~\Delta$ is a permutation of $~\Gamma$.
-    We proceed by structural induction on the typing derivations.
+  \(
+    x_1[v/x_1] &= v \qquad
+    x_2[v/x_1] &= x_2 \qquad
+    (\inl{e})[v/x] &= \inl{e[v/x]} \qquad
+    (\inl{r})[v/x] &= \inr{e[v/x]}
+  \) \\ \vspace*{1em}
 
-    [\textsc{Unit, Nat, Bool}]: Let $n$ be the length of $\Gamma$. Since $\Delta$ is a bijection,
-    there exists some $j \leq n$ such that $\Delta(e_j : \tau_j) = e : \tau$.
-    Therefore, $\Delta \vdash e : \tau$ and the depth does not changes.
+  \(
+    (e, e)[v/x] &= (e[v/x], e[v/x])
+  \)
 
-    [\textsc{Var}]: If $e : \tau \in \Gamma$, then $e : \tau \in \Delta$ since
-    $\Delta$ contains the same elements as $\Gamma$. Therefore, we can apply the
-    judgement that $\Delta \vdash e : \tau$. Moreover, the depth does not change.
+  \caption{Substitution Rules}\label{fig:ops}
+\end{figure}
 
-    [\textsc{Inl, Inr, Pair, Proj 1, Proj 2, App}]: In each of these cases, we can
-    assume that the permutation property holds for the antecedent. Therefore,
-    we can substitute $\Gamma \vdash e_{i} : \tau_{i}$ for some arbitrary $i$ with
-    $\Delta \vdash e_{i} : \tau_{i}$ and straightforwardly apply the judgement
-    and notice that the depth does not change.
+%% ============================================================================
+%% Substitution END
+%% ============================================================================
 
-    [\textsc{Let, Case, Lam}]: Each of these cases contain either $\Gamma$ or
-    $\Gamma \vdash e : \tau$ for which we can assume the permutation property.
-    All of them extend $\Gamma$ with some term $x_j : \tau_j$ but we can also
-    extend $\Delta$ with those terms by adding a mapping from that term to itself.
-    Therefore, $\Delta$ remains a permutation of $\Gamma$ and it contains the same
-    exact elements. Since we satisfy the assumptions, we can apply the judgements
-    to reach the same conclusions.
-  \end{proof}
+\section{Soundness}
 
-  \begin{lemma}[Weakening]
-    If $~\Gamma \vdash e : \tau_1$ and $x \notin dom(\Gamma)$, then $~\Gamma, x : \tau_2
+\subsection{Preservation}
+
+%% ============================================================================
+%% Permutation PROOF
+%% ============================================================================
+
+\begin{lemma}[Permutation]
+  If \(~\Gamma \vdash e : \tau \) and \(~\Delta \) is a permutation of \(~\Gamma \), then
+  \(~\Delta \vdash e : \tau \). Moreover, the latter derivation has the same depth
+  as the former.
+\end{lemma}
+
+\begin{proof}
+  A permutation is a bijection \(\Delta : \Gamma \rightarrow \Gamma \). We will use
+  $\Delta$ as a bijection and $\Delta$ as a typing context interchangeably.
+  We proceed by structural induction on the typing derivations.
+
+    [\textsc{Unit, Nat, Bool}]: Since $\Delta$ is a bijection, there exists some
+  $e' : \tau'$ in $\Delta$ such that \( \Delta(e' : \tau') = e : \tau \). Therefore,
+  \(\Delta \vdash e : \tau \) and the depth does not change.
+
+  [\textsc{Var}]: If \(e : \tau \in \Gamma \), then \(e : \tau \in \Delta \) since $\Delta$ is a bijection.
+  We can apply the judgement and the depth does not change.
+
+  [\textsc{Inl, Inr, Pair, Proj 1, Proj 2, App}]: We assume the inductive hypothesis, substitute
+  $\Delta \vdash e : \tau$ for \( \Gamma \vdash e : \tau \) and apply the judgement.
+  The depth does not change.
+
+  [\textsc{Let, Case, Lam}]:  We assume the inductive hypothesis
+  and substitute $\Delta \vdash e : \tau$ for \( \Gamma \vdash e : \tau \). Each
+  of these derivations extend $\Gamma$ with some term $x : \tau_x$, but we can
+  also extend $\Delta$ by adding a mapping from this term to itself and apply the judgement.
+  The depth does not change.
+\end{proof}
+
+%% ============================================================================
+%% Weakening PROOF
+%% ============================================================================
+
+\begin{lemma}[Weakening]
+  If $~\Gamma \vdash e : \tau_1$ and $x \notin dom(\Gamma)$, then $~\Gamma, x : \tau_2
     \vdash e : \tau_1$. Moreover, the latter derivation has the same depth as
-    the former.
-  \end{lemma}
+  the former.
+\end{lemma}
 
-  \begin{proof}
-    We assume that extension of a context does not result in naming conflicts.
-    We proceed by structural induction on the typing derivation.
+\begin{proof}
+  We proceed by structural induction on the typing derivation.
 
-    [\textsc{Unit, Nat, Bool}]: These judgements do not assume anything about
-    the context. If we extend the context with a non-existing element, we can
-    reach the same conclusions. Moreover, there are no subterms so the derivation
-    tree's depth does not change.
+  [\textsc{Unit, Nat, Bool}]: These judgements do not assume anything about
+  the context. If we extend the context with an element from outside the domain, we can
+  reach the same conclusions. Moreover, there are no subterms so the derivation
+  tree's depth does not change.
 
-    [\textsc{Var}]: If we extend $\Gamma$ with a non-existing element, $x : \tau \in \Gamma$
-    still holds and we can apply the judgement.
+  [\textsc{Var}]: If we extend $\Gamma$ with an element from outside the domain, $x : \tau \in \Gamma$
+  still holds and we can apply the judgement.
 
-    [\textsc{Inl, Inr, Pair, Proj 1, Proj 2, App}]: We assume that the weakening
-    lemma holds for the antecedent These rules do not extend $\Gamma$, so addition of
-    another element allows us to reach the same conclusion.
+  [\textsc{Inl, Inr, Pair, Proj 1, Proj 2, App}]: We assume the inductive hypothesis.
+  These rules do not extend $\Gamma$, so addition of another element from outside the domain allows us to reach the same conclusion.
 
-    [\textsc{Let, Case, Lam}]: We assume the weakening lemma holds for the
-    antecedent. Since these rules extend $\Gamma$, there are two cases. If we
-    extend $\Gamma$ with a variable that has the same type as the assumptions of
-    the judgement, then we get that inference for free. If we extend $\Gamma$ with
-    a different type, then the variables in the original assumption will still
-    exist modulo renaming and we can still apply the judgement.
-  \end{proof}
+  [\textsc{Let, Case, Lam}]: We assume the inductive hypothesis. If we extend the
+  $\Gamma$ with element from outside the domain, the subsequent extensions as part
+  of the antecedent will still be valid modulo renaming. We can still apply the judgement.
+\end{proof}
 
-  \begin{theorem}[Progress]
-    If $\cdot \vdash x : \tau$ is a well typed term then $x$ is a value or there
-    exists some $y$ such that $x \mapsto y$.
-  \end{theorem}
+%% ============================================================================
+%% Substitution PROOF
+%% ============================================================================
 
-  \begin{proof}
-    Admitted.
-  \end{proof}
+\begin{lemma}[Substitution]
+  If~\( \Gamma, x : \tau_1 \vdash e : \tau_2 \) and \( \Gamma \vdash v : \tau_1 \) then \( e[v/x] : \tau_2 \).
+\end{lemma}
 
-  \begin{theorem}[Preservation]
-    If $\cdot \vdash x : \tau$ and $x \mapsto y$, then $\cdot \vdash y : \tau$.
-  \end{theorem}
+\begin{proof}
+  We proceed by structural induction on the typing derivation of \(\Gamma, x : \tau_1 \vdash e : \tau_2\).
 
-  \begin{proof}
-    Admitted.
-  \end{proof}
+  [\textsc{Unit, Nat, Bool}]: By definition of substitution.
+
+  [\textsc{Var}]:
+
+  \vspace*{-1em}
+  \begin{align*}
+    & \trfrac[]{z : \tau_1 \in \Gamma, x : \tau}{\Gamma, x : \tau \vdash z : \tau_1} \quad \Gamma \vdash v : \tau && \text{(Assumptions)} \\
+    & x = z \implies z : \tau \in \Gamma \implies \Gamma \vdash z[v/x] : \tau = \tau_1 && \text{(Substitution)} \\
+    & x \neq z \implies z : \tau_1 \in \Gamma \implies \Gamma \vdash z[v/x] : \tau_1 && \text{(Substitution)}
+  \end{align*}
+
+  [\textsc{Lam}]:
+
+  \vspace*{-1em}
+  \begin{align*}
+    & \trfrac[]{\Gamma, x : \tau, z : \tau_1 \vdash e : \tau_2}{\Gamma, x : \tau \vdash \lambda z : \tau_1 . e : \tau_{1} \rightarrow \tau_2}
+        \quad \Gamma \vdash v : \tau  && \text{(Assumption)} \\
+    & \Gamma, x : \tau, z : \tau_1 \vdash e : \tau_2 && \text{(Subterm)} \\
+    \implies & \big(\Gamma, z : \tau_1), x : \tau \vdash e : \tau_2 && \text{(Permutation)} \\
+    \implies & \Gamma \vdash e[v/z] : \tau_2 && \text{(Inductive Hypothesis)} \\
+    & \Gamma \vdash v : \tau && \text{(Assumption)} \\
+    \implies & \Gamma, z : \tau_1 \vdash v : \tau && \text{(Weakening)} \\
+    \implies & \Gamma \vdash \lambda z : \tau_1 . v : \tau_{1} \rightarrow \tau && \text{(Lam)}
+    % & \Gamma, z : \tau_1 \vdash v : \tau && \text{(Weakening)} \\
+    % & \Gamma, z : \tau_1 \vdash e : \tau_2 \implies \Gamma \vdash z[v/e] : \tau_2 && \text{(Inductive Hypothesis)} \\
+    % % \implies & \Gamma \vdash z[v/x] : \tau && \text{(Inductive Hypothesis)} \\
+    % & \Gamma, x : \tau, z : \tau_1 \vdash e : \tau_2 && \text{(Subterm)} \\
+    % \implies & \Gamma, z : \tau_1, x : \tau \vdash e : \tau_2 && \text{(Permutation)} \\
+  \end{align*}
+
+  [\textsc{App}]:
+
+  \vspace*{-1em}
+  \begin{align*}
+    &  \trfrac[~\textsc{App}]{\Gamma, x : \tau \vdash e_1 : \tau_1 \rightarrow \tau_2 \qquad \Gamma, x : \tau \vdash e_{2} : \tau_1}{\Gamma, x : \tau \vdash e_{1} e_{2} : \tau_2} \quad \Gamma \vdash v : \tau  && \text{(Assumptions)} \\
+    & \Gamma, x : \tau \vdash e_1 : \tau_1 \rightarrow \tau_2 \qquad \Gamma, x : \tau \vdash e_{2} : \tau_1 && \text{(Subterms)} \\
+    \implies & \Gamma \vdash e_1[v/x] : \tau_1 \rightarrow \tau_2 \qquad \Gamma \vdash e_2[v/x] : \tau_1 && \text{(Induction Hypothesis)} \\
+    \implies & \Gamma \vdash e_{1}[v/x] e_{2}[v/x] : \tau_2 && \text{(App)}
+  \end{align*}
 
 
-  \section{Acknowledgements}
+  [\textsc{Inl, Inr}]: Similar derivation applies for \textsc{Inr}.
 
-  Thanks to Anton Lorenzen for his guidance on the project.
+  \vspace*{-1em}
+  \begin{align*}
+    & \trfrac[]{\Gamma, x : \tau \vdash e : \tau_1}{\Gamma, x : \tau \vdash \text{ inl } e : \tau_1 + \tau_2}  \quad \Gamma \vdash v : \tau && \text{(Assumptions)} \\
+    & \Gamma, x : \tau \vdash e : \tau_1 && \text{(Subterm)} \\
+    \implies & \Gamma \vdash e[v/x] : \tau_1 && \text{(Inductive Hypothesis)} \\
+    \implies & \Gamma \vdash \inl{e[v/x]} : \tau_1 + \tau_2 && \text{(Inl)}
+  \end{align*}
 
-  \printbibliography
+  [\textsc{Let}]:
+
+  \vspace*{-1em}
+  \begin{align*}
+    & \trfrac[]{\Gamma, x : \tau \vdash e_1 : \tau_1 \qquad \Gamma, x : \tau, z : \tau_1 \vdash e_2
+      : \tau_2}{\Gamma, x : \tau \vdash \text{ let } z = e_1 \text{ in } e_2 : \tau_2}
+      \quad \Gamma \vdash v : \tau  && \text{(Assumptions)} \\
+    & \Gamma, x : \tau \vdash e_1 : \tau_1 \implies \Gamma \vdash e_1[v/x] : \tau_1 && \text{(Subterm 1, Inductive Hypothesis)} \\
+    & \Gamma, x : \tau, z : \tau_1 \vdash e_2 : \tau_2 && \text{(Subterm 2)} \\
+    \implies & \big(\Gamma, z : \tau_1\big), x : \tau \vdash e_2 : \tau_2 && \text{(Permutation)} \\
+    \implies & \Gamma, z : \tau_1 \vdash e_2[v/x] : \tau_2 && \text{(Inductive Hypothesis)} \\
+    \implies & \Gamma \vdash \text{ let } z = e_1[v/x] \text{ in } e_2[v/x] : \tau_2 && \text{(Let)}
+  \end{align*}
+
+
+  [\textsc{Pair}]:
+
+  \vspace*{-1em}
+  \begin{align*}
+    & \trfrac[]{\Gamma, x : \tau \vdash e_1 : \tau_1 \qquad \Gamma, x : \tau \vdash e_2 : \tau_2}{\Gamma, x : \tau \vdash (e_1, e_2) : \tau_1 \times \tau_2} \quad \Gamma \vdash v : \tau && \text{(Assumptions)} \\
+    & \Gamma, x : \tau \vdash e_1 : \tau_1 \qquad \Gamma, x : \tau \vdash e_2 : \tau_2 && \text{(Subterms)} \\
+    \implies & \Gamma \vdash e_1[v/x] : \tau_1 \qquad \Gamma \vdash e_2[v/x] : \tau_2  && \text{(Inductive Hypothesis)} \\
+    \implies & \Gamma \vdash (e_1[v/x], e_2[v/x]) : \tau_1 \times \tau_2 && \text{(Pair)}
+  \end{align*}
+
+  [\textsc{Proj 1, Proj 2}]: A similar derivation applies for Proj 2.
+
+  \vspace*{-1em}
+  \begin{align*}
+    &\trfrac[]{\Gamma, x : \tau \vdash (e_1, e_2) : \tau_1 \times \tau_2}{\Gamma, x : \tau \vdash e_1 : \tau_1} \quad \Gamma \vdash v : \tau && \text{(Assumptions)} \\
+    &\Gamma, x : \tau \vdash (e_1, e_2) : \tau_1 \times \tau_2 && \text{(Subterm)} \\
+    \implies & \Gamma \vdash (e_1, e_2)[v/x] : \tau_1 \times \tau_2 && \text{(Inductive Hypothesis)} \\
+    \implies & \Gamma \vdash (e_1[v/x], e_2[v/x]) : \tau_1 \times \tau_2 && \text{(Substitution)} \\
+    \implies & \Gamma \vdash e_1[v/x] : \tau_1 && \text{(Proj 1)}
+  \end{align*}
+
+
+\end{proof}
+
+\begin{theorem}[Preservation]
+  If
+\end{theorem}
+
+\begin{proof}
+  Admitted.
+\end{proof}
+
+\subsection{Progress}
+
+\begin{lemma}[Canonical Forms]
+  If
+\end{lemma}
+
+\begin{proof}
+  Admitted.
+\end{proof}
+
+\begin{theorem}[Progress]
+  If $\cdot \vdash x : \tau$ is a well typed term then $x$ is a value or there
+  exists some $y$ such that $x \mapsto y$.
+\end{theorem}
+
+\begin{proof}
+  Admitted.
+\end{proof}
+
+\section{Acknowledgements}
+
+Thanks to Anton Lorenzen for his guidance on the project.
+
+\printbibliography
 
 \end{document}

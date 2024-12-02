@@ -22,8 +22,6 @@ let show (m : t) =
   Format.sprintf "(%s;%s;%s;%s)" (ps stack) (pe env) (pc control) (pd dump)
 ;;
 
-let ( >>= ) = Result.bind
-
 let rec run_c ~debug m =
   let { stack; env; control; dump } = m in
   let () = if debug then Format.print_string (show m) else () in
@@ -83,20 +81,18 @@ and run_a ~debug m =
   match stack with
   | [] -> Error (`OperationalError "can't apply when stack is empty")
   | (Closure (e, id, t), typ) :: (v1, tyv1) :: tl ->
+    (* TCO *)
+    let d' =
+      match tl with
+      | [] -> dump
+      | _ -> (tl, env, control) :: dump
+    in
     if typ = tyv1
-    then
-      run_t
-        ~debug
-        t
-        { stack = []
-        ; env = (id, v1, tyv1) :: e
-        ; control = []
-        ; dump = (tl, env, control) :: dump
-        }
+    then run_t ~debug t { stack = []; env = (id, v1, tyv1) :: e; control = []; dump = d' }
     else Error `TypeError
   | (Primitive f, _) :: (Int a, TyInt) :: tl ->
     run_c ~debug { stack = (Int (f a), TyInt) :: tl; env; control; dump }
   | _ -> Error (`OperationalError "invalid operator")
 ;;
 
-let run ?(debug=false) m = run_c ~debug m
+let run ?(debug = false) m = run_c ~debug m

@@ -34,7 +34,7 @@ let rec eval (t : term) (e : env) =
     >>= fun { value = v1, ty1; env = e' } ->
     eval t0 e'
     >>= fun { value = v0, ty0; env = e'' } -> apply { a = v0, ty0; b = v1, ty1 } e''
-  | _ -> failwith "unimplemented"
+  | _ -> failwith "unimplemented" (* I am not sure how I can implement products. *)
 
 and apply (s : s) (e : env) =
   match s with

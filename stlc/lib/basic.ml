@@ -145,12 +145,18 @@ let rec run ?(debug = false) (m : t) =
            | Closure (e, id, t) ->
              (match s', ty with
               | (v1, tyv1) :: tl, ty when tyv1 = ty ->
+                (* Tail calls *)
+                let d' =
+                  match ctl_tl with
+                  | [] -> d
+                  | _ -> (tl, e, ctl_tl) :: d
+                in
                 run
                   ~debug
                   { stack = []
                   ; env = (id, v1, tyv1) :: e
                   ; control = [ Term t ]
-                  ; dump = (tl, e, ctl_tl) :: d (* TODO! Are we saving the right environment? *)
+                  ; dump = d'
                   }
               | _ -> Error (`OperationalError "invalid closure")))))
 ;;

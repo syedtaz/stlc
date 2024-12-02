@@ -29,12 +29,13 @@ let%test_unit "incr 1" =
       ~stack:(`Specific [ Int x, TyInt ])
       ~control:
         (`Specific
-          (fun { stack = s; env = e; dump = d } ->
+          (fun { stack = s; env = e; dump = d; tail = _ } ->
             M.run_a
               { stack = s
               ; env = e
-              ; ctl = (fun { stack = s'; env = _; dump = d' } -> d' s')
+              ; ctl = (fun { stack = s'; env = _; dump = d'; tail = _ } -> d' s')
               ; dump = d
+              ; tail = true
               }))
       (TmOp incr))
 ;;
@@ -45,12 +46,13 @@ let%test_unit "decr 1" =
       ~stack:(`Specific [ Int x, TyInt ])
       ~control:
         (`Specific
-          (fun { stack = s; env = e; dump = d } ->
+          (fun { stack = s; env = e; dump = d; tail = _ } ->
             M.run_a
               { stack = s
               ; env = e
-              ; ctl = (fun { stack = s'; env = _; dump = d' } -> d' s')
+              ; ctl = (fun { stack = s'; env = _; dump = d'; tail = _ } -> d' s')
               ; dump = d
+              ; tail = true
               }))
       (TmOp decr))
 ;;
@@ -69,14 +71,16 @@ let%test_unit "function return" =
               { stack = s
               ; env = []
               ; ctl =
-                  (fun { stack = s; env = e; dump = d } ->
+                  (fun { stack = s; env = e; dump = d; tail = _ } ->
                     M.run_a
                       { stack = s
                       ; env = e
-                      ; ctl = (fun { stack = s'; env = _; dump = d' } -> d' s')
+                      ; ctl = (fun { stack = s'; env = _; dump = d'; tail = _ } -> d' s')
                       ; dump = d
+                      ; tail = false
                       })
               ; dump = def_dump
+              ; tail = true
               }))
       (TmInt x))
 ;;
@@ -86,20 +90,23 @@ let%test_unit "abstract and return" =
     M.run
       ~control:
         (`Specific
-          (fun { stack = s; env = e; dump = d } ->
+          (fun { stack = s; env = e; dump = d; tail = _ } ->
             M.run_t
               (TmAbs ("x", TyInt, TmVar 0))
               { stack = s
               ; env = e
               ; ctl =
-                  (fun { stack = s'; env = e'; dump = d' } ->
+                  (fun { stack = s'; env = e'; dump = d'; tail = _ } ->
                     M.run_a
                       { stack = s'
                       ; env = e'
-                      ; ctl = (fun { stack = s''; env = _; dump = d'' } -> d'' s'')
+                      ; ctl =
+                          (fun { stack = s''; env = _; dump = d''; tail = _ } -> d'' s'')
                       ; dump = d'
+                      ; tail = false
                       })
               ; dump = d
+              ; tail = true
               }))
       ~dump:
         (`Specific
@@ -109,14 +116,17 @@ let%test_unit "abstract and return" =
               { stack = s
               ; env = []
               ; ctl =
-                  (fun { stack = s'; env = e'; dump = d' } ->
+                  (fun { stack = s'; env = e'; dump = d'; tail = _ } ->
                     M.run_a
                       { stack = s'
                       ; env = e'
-                      ; ctl = (fun { stack = s''; env = _; dump = d'' } -> d'' s'')
+                      ; ctl =
+                          (fun { stack = s''; env = _; dump = d''; tail = _ } -> d'' s'')
                       ; dump = d'
+                      ; tail = false
                       })
               ; dump = def_dump
+              ; tail = true
               }))
       (TmInt x))
 ;;
@@ -126,20 +136,23 @@ let%test_unit "abstract and apply" =
     M.run
       ~control:
         (`Specific
-          (fun { stack = s; env = e; dump = d } ->
+          (fun { stack = s; env = e; dump = d; tail = _ } ->
             M.run_t
               (TmAbs ("f", TyArr (TyInt, TyInt), TmApp (TmVar 0, TmInt x)))
               { stack = s
               ; env = e
               ; ctl =
-                  (fun { stack = s'; env = e'; dump = d' } ->
+                  (fun { stack = s'; env = e'; dump = d'; tail = _ } ->
                     M.run_a
                       { stack = s'
                       ; env = e'
-                      ; ctl = (fun { stack = s''; env = _; dump = d'' } -> d'' s'')
+                      ; ctl =
+                          (fun { stack = s''; env = _; dump = d''; tail = _ } -> d'' s'')
                       ; dump = d'
+                      ; tail = false
                       })
               ; dump = d
+              ; tail = true
               }))
       (TmOp decr))
 ;;
@@ -159,31 +172,34 @@ let%test_unit "construct pair" =
     M.run
       ~control:
         (`Specific
-          (fun { stack = s; env = e; dump = d } ->
+          (fun { stack = s; env = e; dump = d; tail = _ } ->
             M.run_t
               (TmInt x)
               { stack = s
               ; env = e
               ; ctl =
-                  (fun { stack = s'; env = e'; dump = d' } ->
+                  (fun { stack = s'; env = e'; dump = d'; tail = _ } ->
                     M.run_t
                       TmPair
                       { stack = s'
                       ; env = e'
                       ; ctl =
-                          (fun { stack = s''; env = e''; dump = d'' } ->
+                          (fun { stack = s''; env = e''; dump = d''; tail = _ } ->
                             M.run_t
                               TmFst
                               { stack = s''
                               ; env = e''
                               ; ctl =
-                                  (fun { stack = s'''; env = _; dump = d''' } ->
+                                  (fun { stack = s'''; env = _; dump = d'''; tail = _ } ->
                                     d''' s''')
                               ; dump = d''
+                              ; tail = false
                               })
                       ; dump = d'
+                      ; tail = false
                       })
               ; dump = d
+              ; tail = true
               }))
       (TmInt x))
 ;;

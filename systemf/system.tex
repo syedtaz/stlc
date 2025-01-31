@@ -1,0 +1,294 @@
+\documentclass[nonacm]{acmart}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{dsfont}
+\usepackage{trfrac}
+\usepackage{mathtools}
+\usepackage{framed}
+\usepackage{xcolor}
+
+% Helper commands
+\newcommand{\nat}{\texttt{Nat}}
+\newcommand{\bool}{\texttt{Bool}}
+\newcommand{\unit}{\texttt{Unit}}
+\newcommand{\caseof}[3]{\text{case } #1 \text{ of } #2~\(\mid \)~#3}
+\newcommand{\caseofnobar}[3]{\text{case } #1 \text{ of } \{#2,~#3\}}
+\newcommand{\inl}[1]{\text{inl } #1}
+\newcommand{\inr}[1]{\text{inr } #1}
+\newcommand{\jdg}[3]{\trfrac[~\textsc{#1}]{#2}{#3}}
+
+% =================================
+
+\begin{abstract}
+  This work documents an autididactic process of extending simply typed lambda calculus
+  to System F.
+\end{abstract}
+
+\begin{document}
+\title{From \(\lambda_{\rightarrow}\) to \(\lambda_2\)}
+
+% Author information
+
+\author{Tazmilur Saad}
+\affiliation{
+  \institution{Independent}
+  \city{Jersey City}
+  \state{NJ}
+  \country{USA}}
+\email{ssaad@colgate.edu}
+
+% Remove Permission Block
+\setcopyright{rightsretained}
+\makeatletter\@printpermissionfalse\makeatother
+\makeatletter\@printcopyrightfalse\makeatother
+
+\settopmatter{printacmref=false, printccs=true, printfolios=true}
+
+\maketitle
+
+\section*{Terminology}
+
+We treat typing contexts as sets. \(\Gamma, x : \tau \) is referred to as
+``extending'' the context and the extension is sometimes referred to as the new
+binding.
+
+\section{Simply Typed Lambda Calculus}
+
+\begin{figure}
+  \begin{framed}
+    \begin{align*}
+      \Gamma & \Coloneqq \varnothing \mid \Gamma, x : \tau &  & \text{typing context}     \\
+      v      & \Coloneqq \lambda x : \tau . e \mid b       &  & \text{values}             \\
+      b      & \Coloneqq n                                 &  & \text{base types}         \\
+      n      & \Coloneqq 0 \mid 1 \mid \dots               &  & \text{naturals}           \\
+      \tau   & \Coloneqq \nat \mid \tau \rightarrow \tau   &  & \text{types}              \\
+      e      & \Coloneqq x \mid v \mid e~e                 &  & \text{expressions}        \\
+      E      & \Coloneqq [\cdot] \mid E e \mid v E         &  & \text{evaluation context}
+    \end{align*}
+
+    \[
+      \trfrac[~\textsc{Var}]{x : \tau \in \Gamma}{\Gamma \vdash x : \tau}
+      \qquad
+      \trfrac[~\textsc{Lam}]{\Gamma, x : \tau_1 \vdash e : \tau_2}{\Gamma \vdash \lambda x : \tau_1 . e : \tau_{1} \rightarrow \tau_2}
+      \qquad
+      \trfrac[~\textsc{App}]{\Gamma \vdash e_1 : \tau_1 \rightarrow \tau_2 \quad \Gamma \vdash e_{2} : \tau_1}{\Gamma \vdash e_{1} e_{2} : \tau_2}
+    \]
+    \[
+      \trfrac[~\textsc{Nat}]{}{\Gamma \vdash n : \nat}
+    \]
+  \end{framed}
+  \caption{Simply typed lambda calculus}
+  \label{fig:stlc}
+\end{figure}
+
+\subsection{Structural Properties}
+
+\begin{lemma}[Exchange]
+  If \(\Gamma_1 , x_1 : \tau_1 , x_2 : \tau_2 , \Gamma_2 \vdash e : \tau　\) then \(
+  \Gamma_1 , x_2 : \tau_2 , x_1 : \tau_1 , \Gamma_2 \vdash e : \tau \).
+\end{lemma}
+
+\begin{proof}
+  Induction on the typing derivation of \(\Gamma_1 , x_1 : \tau_1 , x_2 : \tau_2 , \Gamma_2 \vdash e : \tau \).
+
+  \textsc{[Nat]}: This judgement does not depend on the typing context.
+
+  \textsc{[Var]}: \(x : \tau \) must be an element of \(\Gamma_1\) or \(\Gamma_2\),
+  or it is equal to \(x_1\) or \(x_2\). In each of these cases, the antecedent
+  is satisfied even if we reorder the elements.
+
+  \textsc{[Lam]}: Assume the inductive hypothesis. Reordering the extensions of
+  the typing context does not affect the new binding, and we can derive the judgement.
+
+  \textsc{[App]}: Follows from the inductive hypothesis.
+\end{proof}
+
+\begin{lemma}[Weakening]
+  If \(\Gamma \vdash e : \tau \) and \( x \notin dom(\Gamma)\), then \(\Gamma, x : \tau_x \vdash e : \tau \).
+\end{lemma}
+
+\begin{proof}
+  Induction on the typing derivation of \(\Gamma \vdash e : \tau \).
+
+  \textsc{[Nat]}: Does not depend on the typing context.
+
+  \textsc{[Var]}: The binding we add to to the context is not within its domain,
+  therefore we can apply the judgement.
+
+  \textsc{[Lam]}: Assume the inductive hypothesis. We extend \(\Gamma\) as part
+  of the antecedent --- therefore, the judgement follows modulo renaming of further
+  extensions.
+
+  \textsc{[App]}: Follows from the inductive hypothesis.
+\end{proof}
+
+\begin{lemma}[Contraction]
+  If \(\Gamma_1, x_2 : \tau_1, x_3 : \tau_1, \Gamma_2 \vdash e : \tau_2 \) then \(\Gamma_1, x_1 : \tau_1, \Gamma_2 \vdash e[x_3/x_1][x_2/x_1] : \tau_2 \).
+\end{lemma}
+
+\begin{proof}
+  {\color{red} QED}.
+\end{proof}
+
+\subsection{Progress \& Preservation}
+
+\begin{lemma}[Canonical Forms]
+  If $v$ is a value of type \nat, then \(v \in \{0, 1, 2, \dots \} \).
+  If $v$ is a value of type \(\tau \rightarrow \tau \), then \(v = \lambda x:\tau.e\).
+\end{lemma}
+
+\begin{proof}
+  The metavariable \(n\) ranges over the natural numbers, and elements denoted by
+  \(n\) are the only elements that can have the type \nat~according to the typing
+  rules. The \textsc{Lam} rule is the only rule that implies a value has type \(\tau \rightarrow
+  \tau\), and it asserts that the value is a lambda abstraction.
+\end{proof}
+
+\textsc{Note}. This can also be proven using the inversion of the typing relation.
+
+\begin{theorem}[Progress]
+  If~\(\vdash e : \tau \) then \(e\) is either a value or there exists an \(e'\)
+  such that \(e \rightarrow e'\).
+\end{theorem}
+
+\begin{proof}
+  Induction on the typing derivation of \(\vdash e : \tau \).
+  \begin{itemize}
+    \item [\textsc{Var.}] A variable is not well typed in the empty typing context.
+    \item [\textsc{Nat, Lam.}] A natural number and a lambda abstraction are values.
+    \item [\textsc{App.}] Let's assume the inductive hypothesis. If either \(e_1\) or
+    \(e_2\) are not values, then there exists an \(e'\) such that a reduction step can
+    be taken. If they are both values, then the canonical forms lemma implies that
+    \(e_1\) is a lambda abstraction since \(e_1 : \tau \rightarrow \tau \), and we can \(\beta \)-reduce \(e_1 e_2\) via
+    \(e_1[e_2/x]\).
+  \end{itemize}
+\end{proof}
+
+\begin{lemma}[Preservation of Types under Substitution]
+  If \(\Gamma, x : \tau_1 \vdash e_1 : \tau \) and \(\Gamma \vdash e_2 : \tau_1\)
+  then \(\Gamma \vdash e_1[e_2/x] : \tau \).
+\end{lemma}
+
+\section{Extensions}
+
+\subsection{Let}
+
+\begin{figure}
+  \begin{framed}
+    \begin{align*}
+      e & \Coloneqq \text{let } x = e \text{ in } e \mid \dots && \text{expressions} \\
+      E & \Coloneqq \text{let } x = E \text{ in } e \mid \text{let } x = v \text{ in } E \mid \dots && \text{evaluation context}
+    \end{align*}
+    \[
+      \text{let } x = v \text{ in } e \rightarrow e[v/x]
+      \qquad
+      \trfrac[~\textsc{Let}]{\Gamma \vdash e_1 : \tau_1 \quad \Gamma, x : \tau_1 \vdash e_2 : \tau_2}{\Gamma \vdash \text{let } x = e_1 \text{ in } e_2 : \tau_2}
+    \]
+  \end{framed}
+  \caption{Let}\label{fig:let}
+\end{figure}
+
+\subsection{Unit}
+
+\begin{figure}
+  \begin{framed}
+    \begin{align*}
+      e & \Coloneqq () \mid \dots && \text{expressions} \\
+      v & \Coloneqq () \mid \dots && \text{values} \\
+      \tau & \Coloneqq \unit \mid \dots && \text{types}
+    \end{align*}
+    \[
+      \trfrac[~\textsc{Unit}]{}{\Gamma \vdash () : \unit}
+    \]
+  \end{framed}
+  \caption{Unit}\label{fig:unit}
+\end{figure}
+
+\subsection{Tuples}
+
+\begin{figure}
+  \begin{framed}
+    \begin{align*}
+      e & \Coloneqq (e_0, \dots, e_n) \mid e.i \mid \dots    &  & \text{expressions}        \\
+      E & \Coloneqq (E, \dots) \mid (v, E, \dots) \mid \dots &  & \text{evaluation context}
+    \end{align*}
+
+    \[
+      \trfrac[~\textsc{Tuple}]{\forall i \in \{0, \dots, n\} \quad \Gamma \vdash e_i : \tau_i}{\Gamma \vdash (e_0, \dots, e_n) : (\tau_0, \dots, \tau_n)}
+      \qquad
+      \trfrac[~\textsc{Proj}]{\Gamma \vdash (e_0, \dots, e_n): (\tau_0, \dots, \tau_n) \quad i \in \{0, \dots, n\}}{\Gamma \vdash e.i : \tau_i}
+    \]
+  \end{framed}
+  \caption{Tuples}\label{fig:tuples}
+\end{figure}
+
+\subsection{Records}
+
+\begin{figure}
+  \begin{framed}
+  \end{framed}
+  \caption{Records}\label{fig:records}
+\end{figure}
+
+\subsection{Variants}
+
+\begin{figure}
+  \begin{framed}
+  \end{framed}
+  \caption{Variants}\label{fig:variants}
+\end{figure}
+
+\subsection{Fixpoints}
+
+\begin{figure}
+  \begin{framed}
+  \end{framed}
+  \caption{Fixpoints}\label{fig:fixpoints}
+\end{figure}
+
+\subsection{References}
+
+\begin{figure}
+  \begin{framed}
+  \end{framed}
+  \caption{References}\label{fig:references}
+\end{figure}
+
+\subsection{Recursive Types}
+
+\begin{figure}
+  \begin{framed}
+  \end{framed}
+  \caption{Recursive Types}\label{fig:recursive-types}
+\end{figure}
+
+\section{System F}
+
+\subsection{Type Reconstruction}
+
+\begin{figure}
+  \begin{framed}
+  \end{framed}
+  \caption{Type Reconstruction}\label{fig:type-reconstruction}
+\end{figure}
+
+\subsection{Universals}
+
+\begin{figure}
+  \begin{framed}
+  \end{framed}
+  \caption{Universals}\label{fig:universals}
+\end{figure}
+
+\subsection{Existentials}
+
+\begin{figure}
+  \begin{framed}
+  \end{framed}
+  \caption{Existentials}\label{fig:existentials}
+\end{figure}
+
+\section{Acknowledgements}
+
+Thanks to Anton Lorenzen for his guidance on the project.
+
+\end{document}

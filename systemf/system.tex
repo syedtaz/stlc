@@ -15,6 +15,7 @@
 \newcommand{\inl}[1]{\text{inl } #1}
 \newcommand{\inr}[1]{\text{inr } #1}
 \newcommand{\jdg}[3]{\trfrac[~\textsc{#1}]{#2}{#3}}
+\newcommand{\reference}[1]{\text{ref } #1}
 
 % =================================
 
@@ -156,10 +157,10 @@ binding.
     \item [\textsc{Var.}] A variable is not well typed in the empty typing context.
     \item [\textsc{Nat, Lam.}] A natural number and a lambda abstraction are values.
     \item [\textsc{App.}] Let's assume the inductive hypothesis. If either \(e_1\) or
-    \(e_2\) are not values, then there exists an \(e'\) such that a reduction step can
-    be taken. If they are both values, then the canonical forms lemma implies that
-    \(e_1\) is a lambda abstraction since \(e_1 : \tau \rightarrow \tau \), and we can \(\beta \)-reduce \(e_1 e_2\) via
-    \(e_1[e_2/x]\).
+          \(e_2\) are not values, then there exists an \(e'\) such that a reduction step can
+          be taken. If they are both values, then the canonical forms lemma implies that
+          \(e_1\) is a lambda abstraction since \(e_1 : \tau \rightarrow \tau \), and we can \(\beta \)-reduce \(e_1 e_2\) via
+          \(e_1[e_2/x]\).
   \end{itemize}
 \end{proof}
 
@@ -168,15 +169,22 @@ binding.
   then \(\Gamma \vdash e_1[e_2/x] : \tau \).
 \end{lemma}
 
+\begin{proof}
+  Induction on the typing derivation of \(\Gamma, x : \tau_1 \vdash e_1 : \tau \).
+\end{proof}
+
 \section{Extensions}
+
+In each of the following extensions we assume the base system is the simply
+typed lambda calculus from Fig~\cite{fig:stlc} unless indicated otherwise.
 
 \subsection{Let}
 
 \begin{figure}
   \begin{framed}
     \begin{align*}
-      e & \Coloneqq \text{let } x = e \text{ in } e \mid \dots && \text{expressions} \\
-      E & \Coloneqq \text{let } x = E \text{ in } e \mid \text{let } x = v \text{ in } E \mid \dots && \text{evaluation context}
+      e & \Coloneqq \text{let } x = e \text{ in } e \mid \dots                                      &  & \text{expressions}        \\
+      E & \Coloneqq \text{let } x = E \text{ in } e \mid \text{let } x = v \text{ in } E \mid \dots &  & \text{evaluation context}
     \end{align*}
     \[
       \text{let } x = v \text{ in } e \rightarrow e[v/x]
@@ -192,9 +200,9 @@ binding.
 \begin{figure}
   \begin{framed}
     \begin{align*}
-      e & \Coloneqq () \mid \dots && \text{expressions} \\
-      v & \Coloneqq () \mid \dots && \text{values} \\
-      \tau & \Coloneqq \unit \mid \dots && \text{types}
+      e    & \Coloneqq () \mid \dots    &  & \text{expressions} \\
+      v    & \Coloneqq () \mid \dots    &  & \text{values}      \\
+      \tau & \Coloneqq \unit \mid \dots &  & \text{types}
     \end{align*}
     \[
       \trfrac[~\textsc{Unit}]{}{\Gamma \vdash () : \unit}
@@ -208,14 +216,20 @@ binding.
 \begin{figure}
   \begin{framed}
     \begin{align*}
-      e & \Coloneqq (e_0, \dots, e_n) \mid e.i \mid \dots    &  & \text{expressions}        \\
-      E & \Coloneqq (E, \dots) \mid (v, E, \dots) \mid \dots &  & \text{evaluation context}
+      v    & \Coloneqq (v_0, \dots, v_n) \mid \dots             &  & \text{values}             \\
+      \tau & \Coloneqq (\tau_0, \dots, \tau_n) \mid \dots       &  & \text{types}              \\
+      e    & \Coloneqq (e_0, \dots, e_n) \mid e.i \mid \dots    &  & \text{expressions}        \\
+      E    & \Coloneqq (E, \dots) \mid (v, E, \dots) \mid \dots &  & \text{evaluation context}
     \end{align*}
 
     \[
-      \trfrac[~\textsc{Tuple}]{\forall i \in \{0, \dots, n\} \quad \Gamma \vdash e_i : \tau_i}{\Gamma \vdash (e_0, \dots, e_n) : (\tau_0, \dots, \tau_n)}
+      (v_0, \dots, v_n).i \rightarrow v_i
       \qquad
-      \trfrac[~\textsc{Proj}]{\Gamma \vdash (e_0, \dots, e_n): (\tau_0, \dots, \tau_n) \quad i \in \{0, \dots, n\}}{\Gamma \vdash e.i : \tau_i}
+      \trfrac[~\textsc{Proj}]{\Gamma \vdash e : (\tau_0, \dots, \tau_n) \quad i \in \{0, \dots, n\}}{\Gamma \vdash e.i : \tau_i}
+    \]
+
+    \[
+      \trfrac[~\textsc{Tuple}]{\forall i \in \{0, \dots, n\} \quad \Gamma \vdash e_i : \tau_i}{\Gamma \vdash (e_0, \dots, e_n) : (\tau_0, \dots, \tau_n)}
     \]
   \end{framed}
   \caption{Tuples}\label{fig:tuples}
@@ -223,8 +237,26 @@ binding.
 
 \subsection{Records}
 
+Let \(l\) be a metavariable ranging over labels.
+
 \begin{figure}
   \begin{framed}
+    \begin{align*}
+      v    & \Coloneqq \{l_0 = v_0, \dots, l_n = v_n\} \mid \dots                                              &  & \text{values}             \\
+      \tau & \Coloneqq \{l_0 : \tau_0, \dots, l_n : \tau_n \} \mid \dots                                       &  & \text{types}              \\
+      e    & \Coloneqq \{l_0 = e_0, \dots, l_n = e_n\} \mid e.l \mid \dots                                     &  & \text{expressions}        \\
+      E    & \Coloneqq  \{l_0 = E, \dots, l_n = e_n \} \mid \{l_0 = v_0, \dots, l_i = e_i, \dots \} \mid \dots &  & \text{expression context}
+    \end{align*}
+
+    \[
+      \{l_0 = v_0, \dots, l_n = v_n\}.l_i \rightarrow v_i
+      \qquad
+      \trfrac[~\textsc{Proj}]{e : (l_0 : \tau_0, \dots, l_n : \tau_n) \quad i \in \{0, \dots, n\}}{\Gamma \vdash e.l_i : \tau_i}
+    \]
+
+    \[
+      \trfrac[~\textsc{Tuple}]{\forall i \in \{0, \dots, n\} \quad \Gamma \vdash e_i : \tau_i}{\Gamma \vdash (l_0 = e_0, \dots, l_n = e_n) : (l_0 : \tau_0, \dots, l_n : \tau_n)}
+    \]
   \end{framed}
   \caption{Records}\label{fig:records}
 \end{figure}
@@ -233,6 +265,15 @@ binding.
 
 \begin{figure}
   \begin{framed}
+    \begin{align*}
+      e & \Coloneqq \langle l = e \rangle~as~\tau \mid \text{case } e \text{ of } \langle l_i = x_i \rangle \Rightarrow e_i \mid \dots && \text{expressions} \\
+      \tau & \Coloneqq \langle l_0 : \tau_0, \dots, l_n : \tau_n \rangle \mid \dots && \text{types} \\
+    \end{align*}
+    \[
+      \trfrac[~\textsc{Variant}]{\Gamma \vdash e_j : \tau_j}{
+        \Gamma \vdash \langle l_j = e_j \rangle~as~\langle l_0 : \tau_0, \dots, l_n : \tau_n \rangle : \langle l_0 : \tau_0, \dots, l_n : \tau_n \rangle
+      }
+    \]
   \end{framed}
   \caption{Variants}\label{fig:variants}
 \end{figure}
@@ -247,8 +288,34 @@ binding.
 
 \subsection{References}
 
+We need the simply typed lambda calculus extended with unit types as in Fig~\ref{fig:unit}.
+\(l\) is a metavariable that ranges over memory locations.
+
 \begin{figure}
   \begin{framed}
+    \begin{align*}
+      e      & \Coloneqq \reference{e} \mid \texttt{!}e \mid e := e \mid \dots &  & \text{expressions}  \\
+      v      & \Coloneqq l \mid \dots                                          &  & \text{values}       \\
+      \tau   & \Coloneqq \texttt{Ref}~\tau                                     &  & \text{types}        \\
+      \mu    & \Coloneqq \varnothing \mid \mu, l = v                           &  & \text{stores}       \\
+      \Sigma & \Coloneqq \varnothing \mid \Sigma, l : \tau                     &  & \text{store typing}
+    \end{align*}
+    \[
+      \trfrac[~\textsc{Loc}]{\Sigma(l) = \tau}{\Gamma \mid \Sigma \vdash l : \texttt{Ref}~\tau}
+    \]
+    \begin{align*}
+      l := v \mid \mu \rightarrow () \mid \mu[l \rightarrow v]
+      \qquad &
+      \trfrac[~\textsc{Assign}]{\Gamma \mid \Sigma \vdash e_1 :
+        \texttt{Ref}~\tau \qquad \Gamma \mid \Sigma \vdash e_2 : \tau}{
+      \Gamma \mid \Sigma \vdash e_1 := e_2 : \unit}                                                                           \\
+      \trfrac[]{\mu (l) = v}{\texttt{!} l \mid \mu \rightarrow v \mid \mu}
+      \qquad &
+      \trfrac[~\textsc{Deref}]{\Gamma \mid \Sigma \vdash e : \texttt{Ref}~\tau}{\Gamma \mid \Sigma \vdash \texttt{!}e : \tau} \\
+      \trfrac[]{l \notin dom(\mu)}{\reference{v} \mid \mu \rightarrow l \mid (\mu, l \rightarrow v)}
+      \qquad &
+      \trfrac[~\textsc{Ref}]{\Gamma \mid \Sigma \vdash e : \tau}{\Gamma \mid \Sigma \vdash \reference{e} : \texttt{Ref}~\tau}
+    \end{align*}
   \end{framed}
   \caption{References}\label{fig:references}
 \end{figure}

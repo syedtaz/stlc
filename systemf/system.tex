@@ -10,12 +10,13 @@
 \newcommand{\nat}{\texttt{Nat}}
 \newcommand{\bool}{\texttt{Bool}}
 \newcommand{\unit}{\texttt{Unit}}
-\newcommand{\caseof}[3]{\text{case } #1 \text{ of } #2~\(\mid \)~#3}
-\newcommand{\caseofnobar}[3]{\text{case } #1 \text{ of } \{#2,~#3\}}
+% \newcommand{\caseof}[3]{\text{case } #1 \text{ of } #2~\(\mid \)~#3}
+% \newcommand{\caseofnobar}[3]{\text{case } #1 \text{ of } \{#2,~#3\}}
 \newcommand{\inl}[1]{\text{inl } #1}
 \newcommand{\inr}[1]{\text{inr } #1}
 \newcommand{\jdg}[3]{\trfrac[~\textsc{#1}]{#2}{#3}}
 \newcommand{\reference}[1]{\text{ref } #1}
+\newcommand{\caseof}[3]{\text{case } \langle#1 \rangle\text{ as } \tau\text{ of } \langle#2\rangle\Rightarrow#3}
 
 % =================================
 
@@ -268,11 +269,22 @@ Let \(l\) be a metavariable ranging over labels.
     \begin{align*}
       e & \Coloneqq \langle l = e \rangle~as~\tau \mid \text{case } e \text{ of } \langle l_i = x_i \rangle \Rightarrow e_i \mid \dots && \text{expressions} \\
       \tau & \Coloneqq \langle l_0 : \tau_0, \dots, l_n : \tau_n \rangle \mid \dots && \text{types} \\
+      E & \Coloneqq \text{case } \langle l_i = E \rangle \text{ as } \tau \text{ of } \langle l_i = e_i \rangle \Rightarrow e_i \\
+      &\mid \caseof{l_i = v_i}{l_i = E}{e_i}
+      \mid \dots && \text{evaluation contexts}
     \end{align*}
     \[
       \trfrac[~\textsc{Variant}]{\Gamma \vdash e_j : \tau_j}{
         \Gamma \vdash \langle l_j = e_j \rangle~as~\langle l_0 : \tau_0, \dots, l_n : \tau_n \rangle : \langle l_0 : \tau_0, \dots, l_n : \tau_n \rangle
       }
+    \]
+
+    \[
+    \trfrac[~\textsc{Case}]{\Gamma \vdash e : \langle l_i : \tau_i \rangle \qquad \forall i \in \{0,\dots,n\}~~\Gamma, x_i : \tau_i \vdash e_i : \tau}{\Gamma \vdash \text{case } e \text{ of } \langle l_i = x_i \rangle \Rightarrow e_i : \tau}
+    \]
+
+    \[
+      \caseof{ l_j = v_j}{l_i = x_i}{e_i} \rightarrow e_j[v_j/x_j] \qquad i \in \{0, \dots, n\}
     \]
   \end{framed}
   \caption{Variants}\label{fig:variants}

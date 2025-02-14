@@ -10,13 +10,13 @@
 \newcommand{\nat}{\texttt{Nat}}
 \newcommand{\bool}{\texttt{Bool}}
 \newcommand{\unit}{\texttt{Unit}}
-% \newcommand{\caseof}[3]{\text{case } #1 \text{ of } #2~\(\mid \)~#3}
-% \newcommand{\caseofnobar}[3]{\text{case } #1 \text{ of } \{#2,~#3\}}
 \newcommand{\inl}[1]{\text{inl } #1}
 \newcommand{\inr}[1]{\text{inr } #1}
 \newcommand{\jdg}[3]{\trfrac[~\textsc{#1}]{#2}{#3}}
 \newcommand{\reference}[1]{\text{ref } #1}
 \newcommand{\caseof}[3]{\text{case } \langle#1 \rangle\text{ as } \tau\text{ of } \langle#2\rangle\Rightarrow#3}
+\newcommand{\fold}[2]{\text{fold } [#1]~#2}
+\newcommand{\unfold}[2]{\text{unfold } [#1]~#2}
 
 % =================================
 
@@ -174,6 +174,28 @@ binding.
   Induction on the typing derivation of \(\Gamma, x : \tau_1 \vdash e_1 : \tau \).
 \end{proof}
 
+\subsection{Normalization}
+
+For each type \(\tau \), we define a set \(R_\tau \) of closed terms of type \(\tau \)
+and write \(R_\tau (e) \) for \(e \in R_\tau \). We use \(N\) to refer to the base type \nat.
+
+\begin{definition}
+  \(R_N (e) \) if and only if \(e\) halts.
+\end{definition}
+
+\begin{definition}
+  \(R_{\tau_1 \rightarrow \tau_2} (e_1) \) if and only if \(e_1\) halts and whenever
+  \(R_{\tau_1} (e_2)\) we have \(R_{\tau_2} (e_1 e_2)\).
+\end{definition}
+
+\begin{lemma}[\(R_\tau\) is invariant under evaluation]
+  If \(e : \tau\) and \(e \rightarrow e'\), then \(R_\tau (e) \iff R_\tau (e')\)
+\end{lemma}
+
+\begin{proof}
+  QED.
+\end{proof}
+
 \section{Extensions}
 
 In each of the following extensions we assume the base system is the simply
@@ -238,15 +260,14 @@ typed lambda calculus from Fig~\cite{fig:stlc} unless indicated otherwise.
 
 \subsection{Records}
 
-Let \(l\) be a metavariable ranging over labels.
-
 \begin{figure}
   \begin{framed}
     \begin{align*}
+      l & && \text{labels} \\
       v    & \Coloneqq \{l_0 = v_0, \dots, l_n = v_n\} \mid \dots                                              &  & \text{values}             \\
       \tau & \Coloneqq \{l_0 : \tau_0, \dots, l_n : \tau_n \} \mid \dots                                       &  & \text{types}              \\
       e    & \Coloneqq \{l_0 = e_0, \dots, l_n = e_n\} \mid e.l \mid \dots                                     &  & \text{expressions}        \\
-      E    & \Coloneqq  \{l_0 = E, \dots, l_n = e_n \} \mid \{l_0 = v_0, \dots, l_i = e_i, \dots \} \mid \dots &  & \text{expression context}
+      E    & \Coloneqq  \{l_0 = E, \dots, l_n = e_n \} \mid \{l_0 = v_0, \dots, l_i = e_i, \dots \} \mid \dots &  & \text{evaluation context}
     \end{align*}
 
     \[
@@ -267,11 +288,11 @@ Let \(l\) be a metavariable ranging over labels.
 \begin{figure}
   \begin{framed}
     \begin{align*}
-      e & \Coloneqq \langle l = e \rangle~as~\tau \mid \text{case } e \text{ of } \langle l_i = x_i \rangle \Rightarrow e_i \mid \dots && \text{expressions} \\
-      \tau & \Coloneqq \langle l_0 : \tau_0, \dots, l_n : \tau_n \rangle \mid \dots && \text{types} \\
-      E & \Coloneqq \text{case } \langle l_i = E \rangle \text{ as } \tau \text{ of } \langle l_i = e_i \rangle \Rightarrow e_i \\
-      &\mid \caseof{l_i = v_i}{l_i = E}{e_i}
-      \mid \dots && \text{evaluation contexts}
+      e          & \Coloneqq \langle l = e \rangle~as~\tau \mid \text{case } e \text{ of } \langle l_i = x_i \rangle \Rightarrow e_i \mid \dots &                            & \text{expressions} \\
+      \tau       & \Coloneqq \langle l_0 : \tau_0, \dots, l_n : \tau_n \rangle \mid \dots                                                       &                            & \text{types}       \\
+      E          & \Coloneqq \text{case } \langle l_i = E \rangle \text{ as } \tau \text{ of } \langle l_i = e_i \rangle \Rightarrow e_i                                                          \\
+                 & \mid \caseof{l_i = v_i}{l_i = E}{e_i}
+      \mid \dots &                                                                                                                              & \text{evaluation contexts}
     \end{align*}
     \[
       \trfrac[~\textsc{Variant}]{\Gamma \vdash e_j : \tau_j}{
@@ -280,7 +301,7 @@ Let \(l\) be a metavariable ranging over labels.
     \]
 
     \[
-    \trfrac[~\textsc{Case}]{\Gamma \vdash e : \langle l_i : \tau_i \rangle \qquad \forall i \in \{0,\dots,n\}~~\Gamma, x_i : \tau_i \vdash e_i : \tau}{\Gamma \vdash \text{case } e \text{ of } \langle l_i = x_i \rangle \Rightarrow e_i : \tau}
+      \trfrac[~\textsc{Case}]{\Gamma \vdash e : \langle l_i : \tau_i \rangle \qquad \forall i \in \{0,\dots,n\}~~\Gamma, x_i : \tau_i \vdash e_i : \tau}{\Gamma \vdash \text{case } e \text{ of } \langle l_i = x_i \rangle \Rightarrow e_i : \tau}
     \]
 
     \[
@@ -294,6 +315,15 @@ Let \(l\) be a metavariable ranging over labels.
 
 \begin{figure}
   \begin{framed}
+    \begin{align*}
+      e & \Coloneqq \text{fix } e \mid \dots &  & \text{expressions}        \\
+      E & \Coloneqq \text{fix } E \mid \dots &  & \text{evaluation context}
+    \end{align*}
+    \[
+      \text{fix } \lambda x : \tau . e \rightarrow e[(\lambda x : \tau . e)/x]
+      \qquad
+      \trfrac[~\textsc{Fix}]{\Gamma \vdash e : \tau \rightarrow \tau}{\Gamma \vdash \text{ fix } e : \tau}
+    \]
   \end{framed}
   \caption{Fixpoints}\label{fig:fixpoints}
 \end{figure}
@@ -301,15 +331,15 @@ Let \(l\) be a metavariable ranging over labels.
 \subsection{References}
 
 We need the simply typed lambda calculus extended with unit types as in Fig~\ref{fig:unit}.
-\(l\) is a metavariable that ranges over memory locations.
 
 \begin{figure}
   \begin{framed}
     \begin{align*}
-      e      & \Coloneqq \reference{e} \mid \texttt{!}e \mid e := e \mid \dots &  & \text{expressions}  \\
-      v      & \Coloneqq l \mid \dots                                          &  & \text{values}       \\
-      \tau   & \Coloneqq \texttt{Ref}~\tau                                     &  & \text{types}        \\
-      \mu    & \Coloneqq \varnothing \mid \mu, l = v                           &  & \text{stores}       \\
+      l      &                                                                 &  & \text{memory locations} \\
+      e      & \Coloneqq \reference{e} \mid \texttt{!}e \mid e := e \mid \dots &  & \text{expressions}      \\
+      v      & \Coloneqq l \mid \dots                                          &  & \text{values}           \\
+      \tau   & \Coloneqq \texttt{Ref}~\tau                                     &  & \text{types}            \\
+      \mu    & \Coloneqq \varnothing \mid \mu, l = v                           &  & \text{stores}           \\
       \Sigma & \Coloneqq \varnothing \mid \Sigma, l : \tau                     &  & \text{store typing}
     \end{align*}
     \[
@@ -332,28 +362,55 @@ We need the simply typed lambda calculus extended with unit types as in Fig~\ref
   \caption{References}\label{fig:references}
 \end{figure}
 
-\subsection{Recursive Types}
+\subsection{Iso-Recursive Types}
 
 \begin{figure}
   \begin{framed}
+    \begin{align*}
+      \alpha &                                                           &  & \text{type variables}      \\
+      e      & \Coloneqq \fold{\tau}{e} \mid \unfold{\tau}{e} \mid \dots &  & \text{expressions}         \\
+      v      & \Coloneqq \fold{\tau}{v} \mid \dots                       &  & \text{values}              \\
+      \tau   & \Coloneqq \alpha \mid \mu \alpha . \tau \mid \dots        &  & \text{types}               \\
+      E      & \Coloneqq \fold{\tau}{E} \mid \unfold{\tau}{E} \mid \dots &  & \text{evaluation contexts} \\
+    \end{align*}
+    \[
+      \trfrac[~\textsc{Fold}]{u = \mu \alpha . \tau_1 \quad \Gamma \vdash e : \tau_{1}[u/\alpha]}{\Gamma \vdash \fold{u}{e} : u}
+      \qquad
+      \trfrac[~\textsc{Unfold}]{u = \mu \alpha . \tau_1 \quad \Gamma \vdash e : u}{\Gamma \vdash \unfold{u}{e} : \tau_1[u/\alpha]}
+    \]
+
+    \[
+      \unfold{\alpha_2}{(\fold{\alpha_1}{v})} \rightarrow v
+    \]
   \end{framed}
-  \caption{Recursive Types}\label{fig:recursive-types}
+  \caption{Iso-Recursive Types}\label{fig:recursive-types}
 \end{figure}
+
+\section{Subtyping}
 
 \section{System F}
 
 \subsection{Type Reconstruction}
 
-\begin{figure}
-  \begin{framed}
-  \end{framed}
-  \caption{Type Reconstruction}\label{fig:type-reconstruction}
-\end{figure}
-
 \subsection{Universals}
 
 \begin{figure}
   \begin{framed}
+    \begin{align*}
+      \alpha & && \text{type variables} \\
+      e & \Coloneqq e [\alpha] \mid \dots && \text{expressions} \\
+      v & \Coloneqq \lambda \alpha . e \mid \dots && \text{values} \\
+      \tau & \Coloneqq \alpha \mid \forall \alpha . \tau \mid \dots && \text{types} \\
+      \Gamma & \Coloneqq \Gamma, \alpha \mid \dots && \text{typing contexts} \\
+      E & \Coloneqq E [\alpha] \mid \dots && \text{evaluation contexts}
+    \end{align*}
+    \[
+      (\lambda \alpha . e)[\tau] \rightarrow e[\tau / \alpha]
+        \qquad
+      \trfrac[~\textsc{Abs}]{\Gamma, \alpha \vdash e : \tau}{\Gamma \vdash \lambda \alpha . e : \forall \alpha . \tau}
+        \qquad
+      \trfrac[~\textsc{App}]{\Gamma \vdash e : \forall \alpha . \tau_1}{\Gamma \vdash e [\tau_2] : \tau_1[\tau_2 / \alpha]}
+    \]
   \end{framed}
   \caption{Universals}\label{fig:universals}
 \end{figure}
